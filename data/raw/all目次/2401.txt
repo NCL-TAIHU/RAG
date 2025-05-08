@@ -1,0 +1,30 @@
+Chapter I. Introduction                                      page
+I.1 Motivation                                             1
+I.2 Literature Review                                    4
+I.3 Methodology                                           10
+Chapter II Ancient Chinese and Greek Mathematics Thinking     12
+II.1. Initial Concept Introduced in the Mozi《墨子》    16
+II.2. Standard Setting of Measurements                  20
+II.3 The Using Way of Diagrams in Ancient China and Greece
+22
+Chapter III: Diagrams in the Zhoubi suanjing《周髀算經》and in the
+Jiuzhang suanshu《九章算術》                28
+III.1: The proof of Gou-Gu 勾股 (Pythagorean) Theorem in the
+Zhou Bi Suanjing                                    29
+III.2: The Proof of the Gou-Gu 勾股 Statement (Pythagorean
+Theorem) in the Jiuzhang suanshu                    37
+III.3 Problems and Diagrams in Applying the Gou-Gu
+(Pythagorean) Theorem                             47
+III.4 The Treatment of the Figure of Circle and Its Parts in
+the Jiuzhang suanshu                             81
+Chapter IV: The meaning of the diagrams found in the 2nd millennnium
+mathematical texts                                 96
+IV.1 The Diagrams of the Fang tian Chapter 方田章    96
+IV.2 Diagram of Square root : Kai fang tu 開方圖           156
+IV.3 Jia Xian Triangle賈憲三角形                       173
+Chapter V: The Other Diagrams in Mathematics Books
+V.1 Rod Calculation                                   183
+V.2 Three-Dimensional Diagrams                           190
+V.3 Graphics of Early Japanese Mathematics Books    205
+Chapter VI: Conclusion                                         212
+Bibliography                                                 220

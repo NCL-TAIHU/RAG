@@ -1,0 +1,76 @@
+Chapter One: Introduction...........................................1
+1.1 Background and motivation.......................................1
+1.2 Research questions and linguistic data..........................2
+1.3 Methodology.....................................................3
+1.4 Organization of the thesis......................................3
+Chapter Two: A Sketch of Siraya Grammar.............................5
+2.1 Orthography inventory...........................................5
+2.2. Word order.....................................................6
+2.3 Case marking system.............................................7
+2.3.1 Nominative case...............................................7
+2.3.2 Gentive case..................................................9
+2.3.3 Oblique case.................................................10
+2.3.4 Comitative...................................................11
+2.3.5 Locative case................................................12
+2.4 Personal pronouns..............................................13
+2.4.1 Nominative...................................................14
+2.4.2 Oblique......................................................14
+2.4.3 Genitive.....................................................15
+2.5 Voice and tense................................................16
+2.5.1 Agent voice..................................................17
+2.5.2 Patient voice................................................17
+2.5.3 Locative voice...............................................18
+2.5.4 Referential voice............................................20
+2.6 Aspect.........................................................21
+2.7 Mood...........................................................23
+2.7.1 Imperative...................................................23
+2.7.2 Subjunctive mood.............................................26
+2.8 Negative constructions.........................................26
+2.8.1 Negative declarative constructionn...........................27
+2.8.2 Negative imperative constructions................................28
+2.8.3 Negation of existential, possessive, locative construction...29
+2.9 Summary........................................................31
+Chapter Three: Literature Review...................................32
+3.1 General overview of nominalization.............................32
+3.2 Studies on nominalization of Formosan languages................32
+3.2.1 Lexical nominalization of Formosan languages.................32
+3.2.2 Methods to identify derived nominals.........................33
+3.2.3 Distinction between derived nominals and focus...............36
+3.2.4 Clausal nominalization.......................................36
+3.2.5 The property of derived nominal and gerundive nominal........39
+3.3 Previous studies on nominalization in Siraya...................41
+3.4 Summary........................................................45
+Chapter Four: Lexical Nominalization of Siraya.....................46
+4.1 Tests to identify derived nominals in Siraya...................46
+4.2 Argument nominalization........................................48
+4.2.1 Agentive nominals............................................49
+4.2.2 Patient /theme nominals......................................53
+4.2.3 Locative nominals............................................56
+4.2.4 Nominals of alternating forms................................59
+4.3 Action/state nominals..........................................61
+4.4 Abstract nouns.................................................65
+4.5 Distinction between derived nominals and focus.................67
+4.6 Summary........................................................71
+Chapter Five: Clausal Nominalization of Siraya.....................72
+5.1 Gerundive nominals.............................................72
+5.2 Cleft constructions............................................75
+5.3 Headless relatives.............................................81
+5.4 Summary........................................................83
+Chapter Six: Conclusion............................................84
+6.1 Summary of this study..........................................84
+6.2 Suggestions for further studies................................85
+References.........................................................87
+Table 2.1: Consonant inventory.......................5
+Table 2.2: Vowel inventory..............................6
+Table 2.3: Pronominal system.......................13
+Table 2.4: Voice and tense............................16
+Table 4.1: Agentive nominals (1)...................49
+Table 4.2: Agentive nominals (2)..................52
+Table 4.3: Patient nominals..........................54
+Table 4.4: Theme nominals..........................55
+Table 4.5: Locative nominals (1)...................57
+Table 4.6: Locative nominals (2)..................58
+Table 4.7: Nominals of alternating forms.....59
+Table 4.8: Action nominals...........................61
+Table 4.9: State nominals............................64
+Table 4.10: Abstract nouns..........................65

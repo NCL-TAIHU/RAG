@@ -8,7 +8,7 @@ from pymilvus import (
     DataType,
     Collection,
 )
-from config import Config
+from src.utils.config import Config
 
 class DatabaseManager:
     """資料庫管理類別，負責資料庫的操作"""

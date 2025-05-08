@@ -1,3 +1,4 @@
+# 基礎套件
 pymilvus>=2.3.0
 pymilvus-model>=0.1.0
 ollama>=0.1.0
@@ -8,4 +9,11 @@ uvicorn>=0.15.0
 gradio>=3.50.0
 requests>=2.31.0
 pandas>=2.0.0
-numpy>=1.24.0 
+numpy>=1.24.0
+
+# 機器學習相關套件
+torch>=2.0.0
+transformers>=4.30.0
+accelerate>=0.20.0
+bitsandbytes>=0.41.0
+peft>=0.4.0 

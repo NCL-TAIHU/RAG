@@ -1,0 +1,39 @@
+INTRODUCTION    1
+CHAPTER I. WHAT IS A “DIAGRAM” IN THE ELEMENTS?    5
+I.1: The discussions of antiquity    5
+I.2: The interpretations of Greek diagrams    6
+I.3: Netz’s invisible repetition    9
+I.4: The problems of interpretations    13
+I.5: Summary    24
+CHAPTER II. HOW DIAGRAMS ARE DIFFERENT?    26
+II.1: The characteristics of manuscript diagram    26
+II.2: Why proofs by contradiction?    33
+II.3: The measurement of the differences of diagram    38
+II.4: Is “visualizing a contradiction” an ancient tradition?    41
+II.5: Summary and discussion    58
+CHAPTER III. THE GENEALOGY OF MEDIEVAL DIAGRAMS    62
+III.1: The transmission of the Elements    62
+III.2: Methodology of textual analysis and Phylogenetics    66
+III.3: Background and the sources    89
+III.4: The genealogy of editions according to the evidence of diagram    95
+III.5: The case of proposition XII.15    115
+III.6: The problems of the parsimony method    121
+CHAPTER IV. EUCLID IN THE 16TH CENTURY: REASONS OF CHANGE    124
+IV.1: The reason of changing diagram    125
+IV.2: Translating Euclid’s diagrams into English    127
+IV.3: Background and the contemporary editions    131
+IV.4: Results of comparison of diagram    134
+IV.5: Recorde’s possible reasons for changing diagrams    142
+IV.6: Billingsley and Dee’s possible reasons for not changing diagrams    145
+IV.7: A trend concerning educational purpose?    150
+IV.8: Further questions    154
+CHAPTER V. CONCLUSION    157
+BIBLIOGRAPHY    162
+A. Primary materials (manuscripts)    162
+B. Primary materials (printed books)    163
+C. Modern scholarship    165
+APPENDIX    174
+Appendix A. The strange case of MS Paris 2346.    174
+Appendix B. The method of Greedy algorithm.    185
+Appendix C. Fitch algorithm    198
+Appendix D. The list of the 93 features of diagram.    200
