@@ -4,6 +4,7 @@ import os
 from loguru import logger
 import pandas as pd
 from typing import Dict, List, Tuple, Any
+from src.utils.config import Config
 
 API_URL = os.getenv("API_URL", "http://localhost:8000")
 

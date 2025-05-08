@@ -2,7 +2,7 @@ import os
 from typing import Tuple, Dict, List, Any
 from loguru import logger
 from milvus_model.hybrid import BGEM3EmbeddingFunction
-from config import Config
+from src.utils.config import Config
 
 class DataProcessor:
     """資料處理類別，負責資料的載入和處理"""

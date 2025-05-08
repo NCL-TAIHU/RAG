@@ -1,7 +1,7 @@
 from typing import Dict, Any, List, Optional
 from loguru import logger
 from pymilvus import AnnSearchRequest, WeightedRanker, Collection
-from config import Config
+from src.utils.config import Config
 import logging
 import numpy as np
 

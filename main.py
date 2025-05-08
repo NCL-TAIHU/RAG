@@ -2,10 +2,10 @@ import os
 import argparse
 import ollama
 from loguru import logger
-from config import Config
-from data_processor import DataProcessor
-from database import DatabaseManager
-from search import SearchEngine
+from src.utils.config import Config
+from src.core.data_processor import DataProcessor
+from src.core.database import DatabaseManager
+from src.core.search import SearchEngine
 import logging
 from typing import List, Optional, Any
 from datetime import datetime
@@ -15,7 +15,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler(f'hybrid_search_{datetime.now().strftime("%Y%m%d")}.log'),
+        logging.FileHandler(os.path.join('logs', f'hybrid_search_{datetime.now().strftime("%Y%m%d")}.log')),
         logging.StreamHandler()
     ]
 )

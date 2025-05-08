@@ -15,7 +15,7 @@ class Config:
     NUM_FILES = 2437  # 可以考慮移到環境變數
     
     # 資料庫設定
-    DB_URI = os.getenv("DB_URI", "./milvus.db")
+    DB_URI = os.getenv("DB_URI")
     COLLECTION_NAME = os.getenv("COLLECTION_NAME", "hybrid_demo")
     
     # 搜尋設定
