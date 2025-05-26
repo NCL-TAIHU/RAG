@@ -1,11 +1,11 @@
 import os
 import argparse
-import ollama
 from loguru import logger
 from src.utils.config import Config
 from src.core.data_processor import DataProcessor
 from src.core.database import DatabaseManager
 from src.core.search import SearchEngine
+from src.core.llm_manager import LLMManager
 import logging
 from typing import List, Optional, Any
 from datetime import datetime
@@ -29,6 +29,7 @@ class HybridSearchApp:
         self.data_processor = DataProcessor()
         self.db_manager = DatabaseManager()
         self.search_engine = None
+        self.llm_manager = None
     
     def setup(self):
         """設定應用程式"""
@@ -53,6 +54,9 @@ class HybridSearchApp:
             # 初始化搜尋引擎
             self.search_engine = SearchEngine(collection)
             
+            # 初始化LLM管理器
+            self.llm_manager = LLMManager(Config.LLM_MODEL)
+            
         except Exception as e:
             logger.error(f"Error in setup: {str(e)}")
             raise
@@ -62,15 +66,21 @@ class HybridSearchApp:
         try:
             prompt = ""
             for i, doc in enumerate(retrieved_doc):
-                prompt = prompt + f"{i+1}.\n{doc.get('data')}\n{doc.get('content')}\n"
-            
-            prompt = prompt + f"\n問題： {query}\n"
-            prompt = prompt + "以上為和\"問題\"相關的\"論文標題\"以及\"論文關鍵字\"和\"目錄\"。先列出這5篇相關論文的論文名稱，再根據以上資訊對這些論文做總結，並給出可能的相關研究議題。只需列出論文名稱，不需列出論文其他資訊。總結以一段文字呈現，不要列點。生成格式為：\n以上論文皆...，根據搜尋結果，可以總結出以下...相關研究議題有..."
-            
-            logger.info("Generated prompt:")
-            logger.info("="*50)
-            logger.info(prompt)
-            logger.info("="*50)
+                prompt = prompt + f"{i+1}.\n{doc.get('data')}\n{doc.get('text')}\n"
+                            
+            prompt += (
+                f"根據以上資料，請針對以下問題進行整合與分析：\n"
+                f"問題：{query}\n\n"
+                "請依照以下指引生成回答：\n"
+                "- 用一段文字統整這些論文可能涉及的核心研究主題與趨勢，避免逐一重複每篇內容。\n"
+                "- 請在這段文字中自然地帶出 2 到 3 個可能的後續研究方向。\n\n"
+                "請注意：\n"
+                "- 不要說『本文』或『以上回應』，直接給出分析結果。\n"
+                "- 不要使用條列格式、標題、步驟編號、格式化開頭（如『本文將…』）。\n"
+                "- 文字需自然流暢、邏輯清晰，不要重複句式或重複前面資料內容。\n"
+            )
+        
+
             return prompt
         except Exception as e:
             logger.error(f"Error in generate_prompt: {str(e)}")
@@ -154,19 +164,14 @@ class HybridSearchApp:
             prompt = self.generate_prompt(results, query)
             logger.info(f"Generating response using model: {Config.LLM_MODEL}")
             
-            generation = ollama.generate(
-                model=Config.LLM_MODEL,
-                prompt=prompt,
-                stream=False,
-                options={'num_predict': -1, 'keep_alive': 0},
-            )
+            response = self.llm_manager.generate(prompt)
             
             logger.info("Generated response:")
             logger.info("="*50)
-            logger.info(generation['response'])
+            logger.info(response)
             logger.info("="*50)
             
-            return generation['response']
+            return response
         except Exception as e:
             logger.error(f"Error in generate_response: {str(e)}")
             raise

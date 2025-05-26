@@ -49,3 +49,12 @@ milvus.db
 # OS specific
 .DS_Store
 Thumbs.db 
+
+# logs
+*.log
+*.log.*
+*.log.*.*
+*.log.*.*.*
+*.log.*.*.*.*
+*.log.*.*.*.*.*
+/outputs/

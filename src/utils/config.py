@@ -24,7 +24,9 @@ class Config:
     DEFAULT_DENSE_WEIGHT = float(os.getenv("DEFAULT_DENSE_WEIGHT", "1.0"))
     
     # LLM 設定
-    LLM_MODEL = os.getenv("LLM_MODEL", "llama3.1:latest")
+    LLM_MODEL = os.getenv("LLM_MODEL", "meta-llama/Llama-3.1-8B-Instruct")
+    HUGGING_FACE_TOKEN = os.getenv("HUGGING_FACE_HUB_TOKEN")
+    
     
     @classmethod
     def validate(cls):
@@ -35,6 +37,20 @@ class Config:
                 raise ValueError(f"Required path not set in environment variables")
             if not os.path.exists(path):
                 raise FileNotFoundError(f"Path does not exist: {path}")
+        
+        # 驗證 Hugging Face Token
+        if not cls.HUGGING_FACE_TOKEN:
+            raise ValueError("HUGGING_FACE_HUB_TOKEN not set in environment variables")
+        
+        # 設置 Hugging Face Token 環境變數
+        os.environ["HUGGING_FACE_HUB_TOKEN"] = cls.HUGGING_FACE_TOKEN
+        
+        # 清除可能衝突的環境變數
+        if "HF_TOKEN" in os.environ:
+            del os.environ["HF_TOKEN"]
+        
+        # 設置 PyTorch 記憶體配置
+        os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
         
         logger.info("Configuration validated successfully")
     
