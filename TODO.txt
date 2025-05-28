@@ -1,0 +1,24 @@
+1. abstract is confusing, should be abstracts
+2. Prompt generation should be one class
+3. Embedding functions should be umbrellaed under an interface
+4. should have document class, indexable by ID, which gets metadata and abstract, instead of metadata and abstract two separate lists
+5. Should be a data postprocessor
+6. LLM should be independent class, wrapping a manager around it makes unecassary clunkiness. 
+7. Test different embedding functions and filtering abilities. 
+8. Create command line / jupyter application to test on different query configurations (filtering, prompt etc.). 
+9. Write embedding question generator (LLM class, prompt generator). 
+
+LLM Builder
+Database Builder
+Prompt Builder
+load data 
+embedder, embedding function and output configurations 
+Query can be an object, including metadata filter. 
+--> Is dense and sparse embedding separately stored? 
+
+Post Processor
+
+
+#parse keywords
+
+

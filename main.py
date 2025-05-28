@@ -185,7 +185,6 @@ def main():
     parser.add_argument("--sparse-weight", type=float, default=0.5, help="Sparse weight for hybrid search")
     parser.add_argument("--dense-weight", type=float, default=0.5, help="Dense weight for hybrid search")
     parser.add_argument("--limit", type=int, default=5, help="Number of results to return")
-    
     args = parser.parse_args()
     
     try:
