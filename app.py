@@ -30,6 +30,13 @@ logger = setup_logger(
 )
 
 class SearchApp:
+    '''
+    A search application that uses a combination of dense and sparse embeddings to retrieve relevant documents.
+    The static methods are contextually static, meaning that their functionality does not depend on the instance state, 
+    but is suited for this specific context of searching and embedding documents. For example, 
+    the database schema is defined statically, as it does not change per instance, but if there's another app, 
+    it may have a different schema or embedding strategy.
+    '''
     def __init__(self, abstract_path, content_path, keyword_path, dense_embedder, sparse_embedder, max_files=50):
         """Initialize the SearchApp."""
         self.documents = []
@@ -160,7 +167,10 @@ class SearchApp:
         ): 
         assert method in ["dense_search", "sparse_search", "hybrid_search"], "Method must be one of: dense_search, sparse_search, hybrid_search"
         dense_vector = self.dense_embedder.embed([query])[0]
-        sparse_vector = self.sparse_embedder.embed([query])._getrow(0)  # Get the first row as a csr_array
+        sparse_vector = self.sparse_embedder.embed([query])
+        assert sparse_vector.shape[0] == 1, "Expected a single-row sparse vector"
+        sparse_vector = sparse_vector._getrow(0)
+        
         manager = CollectionManager(self.collection)
         if method == "dense_search":
             results = manager.search_dense(dense_vector, limit=limit)
