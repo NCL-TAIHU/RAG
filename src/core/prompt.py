@@ -6,6 +6,12 @@ class PromptBuilder():
         self.assistant_prompt = ""
         self.history = []
 
+    @classmethod
+    def from_default(cls, name):
+        """使用默認系統提示創建一個新的 PromptBuilder 實例"""
+        default_system_prompt = "You are a helpful assistant."
+        return cls(system_prompt=default_system_prompt)
+    
     def add_user_message(self, message: str):
         """添加用戶消息到提示中"""
         self.user_prompt += message + ','

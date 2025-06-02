@@ -3,10 +3,13 @@ from torch import nn
 from transformers import AutoTokenizer, AutoModel
 from typing import Union, List, Dict
 import logging
-from tqdm import tqdm
 from FlagEmbedding import BGEM3FlagModel
 from milvus_model.hybrid import BGEM3EmbeddingFunction
-from scipy.sparse import csr_array, coo_array
+from scipy.sparse import csr_array, coo_array, vstack
+import numpy as np
+import contextlib
+import io
+
 logger = logging.getLogger(__name__)
 
 class DenseEmbedder:
@@ -57,7 +60,7 @@ class AutoModelEmbedder(DenseEmbedder):
             logger.warning("No texts provided for embedding.")
             return []
         embeddings = []
-        for i in tqdm(range(0, len(texts), self.batch_size)):
+        for i in range(0, len(texts), self.batch_size):
             batch_texts = texts[i:i + self.batch_size]
             batch_embeddings = self._embed_batch(batch_texts)
             embeddings.extend(batch_embeddings)
@@ -87,25 +90,31 @@ class BGEM3Embedder(SparseEmbedder):
         self.model = BGEM3FlagModel(model_name, use_fp16=use_fp16)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model.model.to(self.device)  # Make sure the internal model is moved to GPU
+        self.vocab_size = len(self.model.tokenizer)
         print(f"Model is on device: {self.device}")
 
 
-    def embed(self, texts: List[str]) -> List[Dict]:
-        output = self.model.encode(
-            texts,
-            return_dense=False,
-            return_sparse=True,
-            return_colbert_vecs=False, 
-            batch_size=32,  # Default batch size for embedding
-        )
-        results = []
-        for lw in output['lexical_weights']:
-            sparse_embeding = {}
-            sparse_embeding["indices"] = [int(idx) for idx in lw.keys()]
-            sparse_embeding["values"] = [float(val) for val in lw.values()]
-            sparse_embeding["dim"] = self.model.tokenizer.vocab_size
-            results.append(sparse_embeding)
-        return results
+    def embed(self, texts: List[str]) -> csr_array:
+        f = io.StringIO()
+        #redirect redundant output to avoid cluttering the console
+        with contextlib.redirect_stdout(f), contextlib.redirect_stderr(f):
+            output = self.model.encode(
+                sentences=texts,
+                return_dense=False,
+                return_sparse=True,
+                return_colbert_vecs=False,
+                batch_size=32,
+            )
+        sparse_rows = []
+        for lw in output["lexical_weights"]:
+            indices = [int(k) for k in lw.keys()]
+            values = np.array(list(lw.values()), dtype=np.float32)
+            row_indices = np.zeros(len(indices), dtype=np.int32)
+            row = csr_array((values, (row_indices, indices)), shape=(1, self.vocab_size))
+            assert row.shape[0] == 1
+            sparse_rows.append(row)
+
+        return vstack(sparse_rows).tocsr()
     
 class MilvusBGEM3Embedder(SparseEmbedder):
     """

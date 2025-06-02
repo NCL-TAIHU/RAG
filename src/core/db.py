@@ -15,7 +15,6 @@ from tqdm import tqdm
 from typing import List, Dict, Optional
 from scipy.sparse import csr_array
 
-
 class FieldConfig(BaseModel): 
     name: str
     dtype: DataType
@@ -59,6 +58,13 @@ class CollectionBuilder:
     
     def connect(self):
         connections.connect(uri="db/milvus.db")  # Adjust the URI as needed
+
+    def get_existing(self) -> Collection:
+        '''
+        Returns the existing collection instance. 
+        Requires: Collection already exists.
+        '''
+        return Collection(self.collection_name)
     
     def build(self) -> Collection:
         #drop existing collection if it exists
@@ -86,7 +92,7 @@ class CollectionManager:
             if field is None: 
                 print(f"Field {i} is None")
             
-        for i in tqdm(range(0, len(data[0]), self.buffer_size)):
+        for i in range(0, len(data[0]), self.buffer_size):
             batch_data = [field[i:i + self.buffer_size] for field in data]
             self.collection.insert(batch_data)
 
