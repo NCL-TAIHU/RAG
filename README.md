@@ -1,6 +1,6 @@
 # 📚 TAIHU: Modular Document Discovery System
 
-TaihuMDD is a modular, benchmark-driven document retrieval and generation system designed for scholarly and domain-specific search. It integrates dense and sparse embeddings, hybrid search via Milvus, and LLM-based response generation.
+Taihu is a modular, benchmark-driven document retrieval and generation system designed for scholarly and domain-specific search. It integrates dense and sparse embeddings, hybrid search via Milvus, structural metadata queries using ElasticSearch, and LLM-based response generation.
 
 ---
 
