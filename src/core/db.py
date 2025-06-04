@@ -96,10 +96,21 @@ class CollectionManager:
             batch_data = [field[i:i + self.buffer_size] for field in data]
             self.collection.insert(batch_data)
 
+    def _subset_expr(self, subset_ids: List[str]) -> str:
+            """
+            Constructs an expression for filtering results based on a list of IDs.
+            """
+            if not subset_ids:
+                return None
+            # Escape double quotes in IDs and format them
+            escaped_ids = [f'"{id_}"' for id_ in subset_ids]
+            return f"pk in [{', '.join(escaped_ids)}]"
+    
     def search_dense(
             self, 
             query_vector: List[float], 
             limit: int = 10, 
+            subset_ids: Optional[List[str]] = None,
             output_fields: List[str] = ["pk", "abstract", "keywords", "content"]
         ):
         self.collection.load()
@@ -109,14 +120,16 @@ class CollectionManager:
             anns_field="dense_vector",
             param=search_params,
             limit=limit,
+            expr=self._subset_expr(subset_ids),  # Filter by subset if provided
             output_fields=output_fields
         )
         return results[0] if results else []
-
+    
     def search_sparse(
             self, 
             query_vector: csr_array, 
             limit: int = 10, 
+            subset_ids: Optional[List[str]] = None,
             output_fields: List[str] = ["pk", "abstract", "keywords", "content"]
         ):
         self.collection.load()
@@ -126,7 +139,8 @@ class CollectionManager:
             anns_field="sparse_vector",
             param=search_params,
             limit=limit,
-            output_fields=output_fields
+            expr=self._subset_expr(subset_ids),  # Filter by subset if provided
+            output_fields=output_fields, 
         )
         return results[0] if results else []
 
@@ -136,6 +150,7 @@ class CollectionManager:
         sparse_vector: csr_array,
         alpha: float = 0.5,
         limit: int = 10,
+        subset_ids: Optional[List[str]] = None,
         output_fields: List[str] = ["pk", "abstract", "keywords", "content"]
     ) -> SearchResult:
         """
@@ -145,13 +160,13 @@ class CollectionManager:
         self.collection.load()
         dense_search_params = {"metric_type": "IP", "params": {}}
         dense_req = AnnSearchRequest(
-            [dense_vector], "dense_vector", dense_search_params, limit=limit
+            [dense_vector], "dense_vector", dense_search_params, limit=limit, expr=self._subset_expr(subset_ids)
         )
         print(f"dense vector size {len(dense_vector)}")
 
         sparse_search_params = {"metric_type": "IP", "params": {}}
         sparse_req = AnnSearchRequest(
-            [sparse_vector], "sparse_vector", sparse_search_params, limit=limit
+            [sparse_vector], "sparse_vector", sparse_search_params, limit=limit, expr=self._subset_expr(subset_ids)
         )
         print(f"sparse vector size {sparse_vector.shape[1]}")
         search_params = {

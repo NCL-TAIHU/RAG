@@ -10,6 +10,7 @@ from scipy.sparse import csr_array
 from typing import List
 import sys
 from pymilvus.client.abstract import SearchResult
+from src.core.filter import Filter, DummyFilter
 from pymilvus import (
     DataType,
     Collection,
@@ -19,7 +20,7 @@ CHATBOT = "meta-llama/Llama-3.1-8B-Instruct"
 DENSE_EMBEDDER = "sentence-transformers/all-MiniLM-L6-v2"
 SPARSE_EMBEDDER = "BAAI/bge-m3"
 
-DATASET = "arxiv"  # Default dataset to use
+DATASET = "history"  # Default dataset to use
 
 logger = setup_logger(
     name = 'search_app',
@@ -37,14 +38,13 @@ class SearchApp:
     the database schema is defined statically, as it does not change per instance, but if there's another app, 
     it may have a different schema or embedding strategy.
     '''
-    def __init__(self, dataloader: DataLoader, dense_embedder: str, sparse_embedder: str, max_files=50):
+    def __init__(self, dataloader: DataLoader, dense_embedder: str, sparse_embedder: str):
         """Initialize the SearchApp."""
         self.data_loader: DataLoader = dataloader 
         self.dense_embedder = AutoModelEmbedder(model_name=dense_embedder)
         self.sparse_embedder = BGEM3Embedder(model_name=sparse_embedder, use_fp16=False)
         self.collection = None
         self.llm = None
-        self.max_files = max_files
     
     @staticmethod
     def embed_abstracts(documents: List[Document], dense_embedder: DenseEmbedder, sparse_embedder: SparseEmbedder):
@@ -68,8 +68,18 @@ class SearchApp:
                 FieldConfig(name="dense_vector", dtype=DataType.FLOAT_VECTOR, dim=384),
             ],
             indexes=[
-                IndexConfig(field_name="sparse_vector", index_params={"index_type": "SPARSE_INVERTED_INDEX", "metric_type": "IP"}),
-                IndexConfig(field_name="dense_vector", index_params={"index_type": "AUTOINDEX", "metric_type": "IP"})
+                IndexConfig(
+                field_name="sparse_vector",
+                index_params={"index_type": "SPARSE_INVERTED_INDEX", "metric_type": "IP"}
+                ),
+                IndexConfig(
+                    field_name="dense_vector",
+                    index_params={
+                        "index_type": "IVF_FLAT",     # predictable ANN behavior
+                        "metric_type": "IP",
+                        "params": {"nlist": 128}     # number of clusters
+                    }
+                )
             ]
         )
         collection_builder = CollectionBuilder.from_config(db_config)
@@ -99,6 +109,7 @@ class SearchApp:
         """Build a prompt for the LLM based on the query and retrieved results."""
         #convert results to a string format
         hits = results[0]
+        print(f"example hit: {hits[0].fields}")
         results_str = "\n".join([f"{i+1}. {hit.fields.get('abstract', '')}" for i, hit in enumerate(hits)])
         prompt_builder = (PromptBuilder(system_prompt="Answer the question based on the retrieved documents.")
                         .add_user_message(query)
@@ -143,13 +154,14 @@ class SearchApp:
         self.llm = self.construct_llm()
         logger.info("LLM constructed successfully.")
     
-    def search(
+    def rag(
             self, 
             query: str, 
             method: str = "hybrid_search" , 
             sparse_weight: float = None, 
             dense_weight: float = None,
-            limit: int = None
+            limit: int = None, 
+            subset_ids: List[str] = None,
         ): 
         assert method in ["dense_search", "sparse_search", "hybrid_search"], "Method must be one of: dense_search, sparse_search, hybrid_search"
         dense_vector = self.dense_embedder.embed([query])[0]
@@ -159,12 +171,12 @@ class SearchApp:
         
         manager = CollectionManager(self.collection)
         if method == "dense_search":
-            results = manager.search_dense(dense_vector, limit=limit)
+            results = manager.search_dense(dense_vector, limit=limit, subset_ids=subset_ids)
         elif method == "sparse_search":
-            results = manager.search_sparse(sparse_vector, limit=limit)
+            results = manager.search_sparse(sparse_vector, limit=limit, subset_ids=subset_ids)
         else:
             alpha = sparse_weight  / (dense_weight + sparse_weight) if dense_weight and sparse_weight else 0.5
-            results = manager.search_hybrid(dense_vector, sparse_vector, alpha=alpha, limit=limit)
+            results = manager.search_hybrid(dense_vector, sparse_vector, alpha=alpha, limit=limit, subset_ids=subset_ids)
         prompt = self.build_prompt(query, results)
         generation = self.generate(self.llm, prompt)
         return {
@@ -209,12 +221,15 @@ if __name__ == "__main__":
                 print("Invalid limit. Using default of 5.")
                 limit = 5
 
-            output = search_app.search(
+            #subset_ids = None
+            subset_ids = DummyFilter().get()  # Get subset IDs from the filter, if applicable
+            output = search_app.rag(
                 query=query,
                 method=method,
                 sparse_weight=sparse_weight,
                 dense_weight=dense_weight,
-                limit=limit
+                limit=limit, 
+                subset_ids=subset_ids
             )
             print("\n--- Search Results ---")
             for i, result in enumerate(output["results"]):

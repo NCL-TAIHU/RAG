@@ -106,7 +106,6 @@ class JsonDataLoader(DataLoader):
                 yield from self.handle(doc)
         yield from self.flush()
 
-
     def handle(self, document: Document) -> Iterator[List[Document]]:
         self.documents.append(document)
         if len(self.documents) >= self.buffer_size:
@@ -116,4 +115,3 @@ class JsonDataLoader(DataLoader):
         if self.documents:
             yield self.documents
             self.documents = []
-        
