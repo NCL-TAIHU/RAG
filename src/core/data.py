@@ -115,3 +115,29 @@ class JsonDataLoader(DataLoader):
         if self.documents:
             yield self.documents
             self.documents = []
+
+
+class Sampler: 
+    def sample(self) -> List[Document]: 
+        """
+        Samples a list of documents from a dataset
+        """
+        raise NotImplementedError("Subclasses should implement this method.")
+    
+
+class DummySampler(Sampler):
+    def __init__(self, dataset: str):
+        """
+        Initializes the DummySampler with a dataset name.
+        """
+        self.dataset = dataset
+
+    def sample(self) -> List[Document]:
+        """
+        Returns a dummy list of documents.
+        """
+        return [
+            Document(id="1", abstract="Abstract 1", content="Content 1", keywords=["keyword1"]),
+            Document(id="2", abstract="Abstract 2", content="Content 2", keywords=["keyword2"]),
+            Document(id="3", abstract="Abstract 3", content="Content 3", keywords=["keyword3"]),
+        ]

@@ -1,11 +1,10 @@
 from src.core.db import CollectionBuilder, CollectionConfig, FieldConfig, IndexConfig, CollectionManager
-from src.core.llm import LLMConfig, get_llm
+from src.core.llm import LLMBuilder, generate
 from src.core.embedder import DenseEmbedder, SparseEmbedder, AutoModelEmbedder, BGEM3Embedder, MilvusBGEM3Embedder
 from src.core.data import DataLoader
 from src.core.prompt import PromptBuilder
 from src.core.entity import Document
 from src.utils.logging import setup_logger
-from vllm import LLM, SamplingParams
 from scipy.sparse import csr_array
 from typing import List
 import sys
@@ -19,7 +18,6 @@ from tqdm import tqdm
 CHATBOT = "meta-llama/Llama-3.1-8B-Instruct"
 DENSE_EMBEDDER = "sentence-transformers/all-MiniLM-L6-v2"
 SPARSE_EMBEDDER = "BAAI/bge-m3"
-
 DATASET = "history"  # Default dataset to use
 
 logger = setup_logger(
@@ -117,23 +115,8 @@ class SearchApp:
         return prompt_builder.build_prompt()
 
     @staticmethod
-    def generate(llm: LLM, prompt: str) -> str: 
-        params = SamplingParams(temperature=0.7, top_p=0.95, max_tokens=512)
-        response = llm.generate(prompt, sampling_params=params)
-        return response[0].outputs[0].text if response and response[0].outputs else "No response generated."
-
-    @staticmethod
     def construct_llm():
-        llm_config = LLMConfig(
-            model= CHATBOT, 
-            trust_remote_code=True,
-            download_dir="/tmp/model_cache",
-            tensor_parallel_size=1,
-            gpu_memory_utilization=0.8,  # 限制 GPU 記憶體使用率
-            max_model_len=8192,          # 限制上下文長度
-            quantization="fp8"
-        )
-        return get_llm(llm_config)
+        return LLMBuilder.from_default(CHATBOT).build() 
     
     def setup(self):
         logger.info("Setting up SearchApp...")
@@ -154,7 +137,7 @@ class SearchApp:
         self.llm = self.construct_llm()
         logger.info("LLM constructed successfully.")
     
-    def rag(
+    def search(
             self, 
             query: str, 
             method: str = "hybrid_search" , 
@@ -177,8 +160,11 @@ class SearchApp:
         else:
             alpha = sparse_weight  / (dense_weight + sparse_weight) if dense_weight and sparse_weight else 0.5
             results = manager.search_hybrid(dense_vector, sparse_vector, alpha=alpha, limit=limit, subset_ids=subset_ids)
+        return results
+        
+    def rag(self, query, results):
         prompt = self.build_prompt(query, results)
-        generation = self.generate(self.llm, prompt)
+        generation = generate(self.llm, prompt)
         return {
             "results": results,
             "prompt": prompt,
@@ -223,7 +209,7 @@ if __name__ == "__main__":
 
             #subset_ids = None
             subset_ids = DummyFilter().get()  # Get subset IDs from the filter, if applicable
-            output = search_app.rag(
+            results = search_app.search(
                 query=query,
                 method=method,
                 sparse_weight=sparse_weight,
@@ -231,6 +217,7 @@ if __name__ == "__main__":
                 limit=limit, 
                 subset_ids=subset_ids
             )
+            output = search_app.rag(query, results)
             print("\n--- Search Results ---")
             for i, result in enumerate(output["results"]):
                 print(f"[{i+1}] {result}")
