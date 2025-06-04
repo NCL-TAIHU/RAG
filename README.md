@@ -58,10 +58,8 @@ The `SearchAppEvaluator` evaluates precision, recall, and exact-match against kn
 
 ## 📌 TODO / Future Work
 
-- [ ] Add runtime monitoring and logging (e.g., W&B integration)
-- [ ] Centralize configuration handling
-- [ ] Build CLI for orchestration
-- [ ] Support multiple datasets and automatic evaluation loops
+- [ ] Implement Samplers for sampling Benchmark
+- [ ] Implement Metadata filtering using ElasticSearch in ElasticSearchFilter
 
 ---
 
