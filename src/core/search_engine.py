@@ -1,6 +1,5 @@
 from typing import List, Optional, Dict
 from src.core.entity import Document
-from src.core.filter import Filter
 from src.core.embedder import SparseEmbedder, DenseEmbedder
 from src.core.entity import Document
 from src.core.collection import FieldConfig, IndexConfig, CollectionConfig, CollectionOperator, CollectionBuilder

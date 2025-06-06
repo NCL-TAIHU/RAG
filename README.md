@@ -8,7 +8,7 @@ Taihu is a modular, benchmark-driven document retrieval and generation system de
 
 ### 📌 Modular Dependency Diagram
 
-![Architecture Diagram](./assets/TaihuMDD.drawio%20(3).svg)
+![Architecture Diagram](./assets/TaihuMDD.drawio%20(4).svg)
 
 This system is composed of the following main modules:
 
