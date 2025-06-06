@@ -1,19 +1,16 @@
-from src.core.db import CollectionBuilder, CollectionConfig, FieldConfig, IndexConfig, CollectionManager
+from src.core.collection import CollectionBuilder, CollectionConfig, FieldConfig, IndexConfig, CollectionOperator
 from src.core.llm import LLMBuilder, generate
 from src.core.embedder import DenseEmbedder, SparseEmbedder, AutoModelEmbedder, BGEM3Embedder, MilvusBGEM3Embedder
 from src.core.data import DataLoader
 from src.core.prompt import PromptBuilder
 from src.core.entity import Document
+from src.core.search_engine import SearchEngine, Filter
+from src.core.library import Library, InMemoryLibrary, FilesLibrary
 from src.utils.logging import setup_logger
 from scipy.sparse import csr_array
 from typing import List
 import sys
-from pymilvus.client.abstract import SearchResult
-from src.core.filter import Filter, DummyFilter
-from pymilvus import (
-    DataType,
-    Collection,
-)
+from src.core.manager import BaseManager, HybridManager   
 from tqdm import tqdm
 CHATBOT = "meta-llama/Llama-3.1-8B-Instruct"
 DENSE_EMBEDDER = "sentence-transformers/all-MiniLM-L6-v2"
@@ -36,134 +33,27 @@ class SearchApp:
     the database schema is defined statically, as it does not change per instance, but if there's another app, 
     it may have a different schema or embedding strategy.
     '''
-    def __init__(self, dataloader: DataLoader, dense_embedder: str, sparse_embedder: str):
+    def __init__(self, dataloader: DataLoader, manager: BaseManager):
         """Initialize the SearchApp."""
         self.data_loader: DataLoader = dataloader 
-        self.dense_embedder = AutoModelEmbedder(model_name=dense_embedder)
-        self.sparse_embedder = BGEM3Embedder(model_name=sparse_embedder, use_fp16=False)
-        self.collection = None
-        self.llm = None
-    
-    @staticmethod
-    def embed_abstracts(documents: List[Document], dense_embedder: DenseEmbedder, sparse_embedder: SparseEmbedder):
-        abstracts = [doc.abstract for doc in documents]  # List of abstracts
-        logger.debug("dense embedding abstracts")
-        dense_embeddings = dense_embedder.embed(abstracts)
-        logger.debug("sparse embedding abstracts")
-        sparse_embeddings = sparse_embedder.embed(abstracts)
-        return dense_embeddings, sparse_embeddings
-    
-    @staticmethod
-    def construct_milvus_collection():
-        db_config = CollectionConfig(
-            collection_name="example_collection",
-            fields=[
-                FieldConfig(name="pk", dtype=DataType.VARCHAR, is_primary=True, max_length=100),
-                FieldConfig(name="abstract", dtype=DataType.VARCHAR, max_length=10000),
-                FieldConfig(name="keywords", dtype=DataType.VARCHAR, max_length=512),
-                FieldConfig(name="content", dtype=DataType.VARCHAR, max_length=20000),
-                FieldConfig(name="sparse_vector", dtype=DataType.SPARSE_FLOAT_VECTOR),
-                FieldConfig(name="dense_vector", dtype=DataType.FLOAT_VECTOR, dim=384),
-            ],
-            indexes=[
-                IndexConfig(
-                field_name="sparse_vector",
-                index_params={"index_type": "SPARSE_INVERTED_INDEX", "metric_type": "IP"}
-                ),
-                IndexConfig(
-                    field_name="dense_vector",
-                    index_params={
-                        "index_type": "IVF_FLAT",     # predictable ANN behavior
-                        "metric_type": "IP",
-                        "params": {"nlist": 128}     # number of clusters
-                    }
-                )
-            ]
-        )
-        collection_builder = CollectionBuilder.from_config(db_config)
-        collection_builder.connect()
-        return collection_builder.build()
-    
-    @staticmethod
-    def insert_entries(
-            collection: Collection, 
-            documents: List[Document], 
-            dense_embeddings: List[List[float]], 
-            sparse_embeddings: csr_array
-        ):
-        manager = CollectionManager(collection)
-        assert len(documents) == len(dense_embeddings) == sparse_embeddings.shape[0], "All input lists must have the same length"
-        manager.buffered_insert([
-            [doc.id for doc in documents],
-            [doc.abstract for doc in documents],
-            [",".join(doc.keywords) for doc in documents], 
-            [doc.content for doc in documents],
-            sparse_embeddings,
-            dense_embeddings
-        ])
+        self.manager: BaseManager = manager
 
-    @staticmethod
-    def build_prompt(query: str, results: SearchResult) -> str:
-        """Build a prompt for the LLM based on the query and retrieved results."""
-        #convert results to a string format
-        hits = results[0]
-        print(f"example hit: {hits[0].fields}")
-        results_str = "\n".join([f"{i+1}. {hit.fields.get('abstract', '')}" for i, hit in enumerate(hits)])
-        prompt_builder = (PromptBuilder(system_prompt="Answer the question based on the retrieved documents.")
-                        .add_user_message(query)
-                        .add_retrieval_results(results_str))
-        return prompt_builder.build_prompt()
-
-    @staticmethod
-    def construct_llm():
-        return LLMBuilder.from_default(CHATBOT).build() 
-    
     def setup(self):
-        logger.info("Setting up SearchApp...")
-        logger.info("constructing Milvus collection...")
-        self.collection = self.construct_milvus_collection()
-        logger.info("Milvus collection constructed successfully.")
-
-        logger.info("loading and inserting data...")
+        self.manager.setup()
         for documents in tqdm(self.data_loader.load(), desc="Embedding batches"):
-            logger.debug(f"embedding abstracts")
-            dense_embeddings, sparse_embeddings = self.embed_abstracts(documents, self.dense_embedder, self.sparse_embedder)
-            logger.debug("inserting entries")
-            self.insert_entries(self.collection, documents, dense_embeddings, sparse_embeddings)
-        logger.info("Data loaded and inserted successfully.")
-
-
-        logger.info("constructing LLM...")
-        self.llm = self.construct_llm()
-        logger.info("LLM constructed successfully.")
+            self.manager.insert(documents)
+        self.llm = LLMBuilder.from_default(CHATBOT).build()    
     
     def search(
             self, 
             query: str, 
-            method: str = "hybrid_search" , 
-            sparse_weight: float = None, 
-            dense_weight: float = None,
+            filter: Filter = None,
             limit: int = None, 
-            subset_ids: List[str] = None,
         ): 
-        assert method in ["dense_search", "sparse_search", "hybrid_search"], "Method must be one of: dense_search, sparse_search, hybrid_search"
-        dense_vector = self.dense_embedder.embed([query])[0]
-        sparse_vector = self.sparse_embedder.embed([query])
-        assert sparse_vector.shape[0] == 1, "Expected a single-row sparse vector"
-        sparse_vector = sparse_vector._getrow(0)
-        
-        manager = CollectionManager(self.collection)
-        if method == "dense_search":
-            results = manager.search_dense(dense_vector, limit=limit, subset_ids=subset_ids)
-        elif method == "sparse_search":
-            results = manager.search_sparse(sparse_vector, limit=limit, subset_ids=subset_ids)
-        else:
-            alpha = sparse_weight  / (dense_weight + sparse_weight) if dense_weight and sparse_weight else 0.5
-            results = manager.search_hybrid(dense_vector, sparse_vector, alpha=alpha, limit=limit, subset_ids=subset_ids)
-        return results
-        
-    def rag(self, query, results):
-        prompt = self.build_prompt(query, results)
+        return self.manager.fetch(query=query, filter=filter, limit=limit)
+    
+    def rag(self, query: str, results: List[Document]) -> dict:
+        prompt = PromptBuilder().add_user_message(query).add_documents(results).build_prompt()
         generation = generate(self.llm, prompt)
         return {
             "results": results,
@@ -171,63 +61,58 @@ class SearchApp:
             "generation": generation
         }
     
-if __name__ == "__main__":
+def main():
+    print("🔎 Initializing SearchApp...")
     dataloader = DataLoader.from_default(DATASET)
-    search_app = SearchApp(
-        dataloader=dataloader,
-        dense_embedder=DENSE_EMBEDDER, 
-        sparse_embedder=SPARSE_EMBEDDER
-    )
-    search_app.setup()
-    logger.info("Search application initialized successfully")
-    try:
-        while True:
-            query = input("\nEnter your search query (or type 'exit' to quit): ").strip()
-            if query.lower() in {"exit", "quit"}:
-                logger.info("Exiting search application.")
-                break
+    library: Library = InMemoryLibrary()
+    sparse_embedder: SparseEmbedder = BGEM3Embedder(model_name=SPARSE_EMBEDDER)
+    dense_embedder: DenseEmbedder = AutoModelEmbedder(model_name=DENSE_EMBEDDER)
+    manager: BaseManager = HybridManager(library, sparse_embedder, dense_embedder)
+    app = SearchApp(dataloader, manager)
+    app.setup()
 
-            method = input("Search method [dense_search / sparse_search / hybrid_search] (default=hybrid_search): ").strip() or "hybrid_search"
-            if method not in {"dense_search", "sparse_search", "hybrid_search"}:
-                print("Invalid method. Defaulting to hybrid_search.")
-                method = "hybrid_search"
+    print("\n📚 Welcome to the Interactive Search App!")
+    print("Type your query and press Enter to search.")
+    print("Type `:rag` to toggle RAG mode, `:topk <num>` to change result count, or `:exit` to quit.")
+    
+    rag_enabled = False
+    top_k = 5
 
-            sparse_weight = dense_weight = None
-            if method == "hybrid_search":
-                try:
-                    sparse_weight = float(input("Enter sparse weight (default=1.0): ") or "1.0")
-                    dense_weight = float(input("Enter dense weight (default=1.0): ") or "1.0")
-                except ValueError:
-                    print("Invalid weights. Using default of 1.0 for both.")
-                    sparse_weight = dense_weight = 1.0
-
+    while True:
+        user_input = input("\n>>> ").strip()
+        if user_input.lower() in {":exit", "exit", "quit"}:
+            print("👋 Exiting. Goodbye!")
+            break
+        elif user_input.lower() == ":rag":
+            rag_enabled = not rag_enabled
+            print(f"RAG mode {'enabled' if rag_enabled else 'disabled'}.")
+            continue
+        elif user_input.startswith(":topk"):
             try:
-                limit = int(input("Number of results to retrieve (default=5): ") or "5")
-            except ValueError:
-                print("Invalid limit. Using default of 5.")
-                limit = 5
+                top_k = int(user_input.split()[1])
+                print(f"Result limit set to {top_k}.")
+            except (IndexError, ValueError):
+                print("Usage: :topk <int>")
+            continue
+        elif user_input.startswith(":"):
+            print("❓ Unknown command.")
+            continue
 
-            #subset_ids = None
-            subset_ids = DummyFilter().get()  # Get subset IDs from the filter, if applicable
-            results = search_app.search(
-                query=query,
-                method=method,
-                sparse_weight=sparse_weight,
-                dense_weight=dense_weight,
-                limit=limit, 
-                subset_ids=subset_ids
-            )
-            output = search_app.rag(query, results)
-            print("\n--- Search Results ---")
-            for i, result in enumerate(output["results"]):
-                print(f"[{i+1}] {result}")
+        # Run search
+        results = app.search(query=user_input, limit=top_k)
+        print("\n🔍 Search Results:")
+        if not results:
+            print("No results found.")
+            continue
 
-            print("\n--- Prompt ---")
-            print(output["prompt"])
+        for i, doc in enumerate(results, 1):
+            print(f"[{i}] {doc.id}")
+            print(f"     Abstract: {doc.abstract[:200]}...\n")
 
-            print("\n--- Generation ---")
-            print(output["generation"])
+        if rag_enabled:
+            response = app.rag(user_input, results)
+            print("\n💬 LLM Response:")
+            print(response["generation"])
 
-    except KeyboardInterrupt:
-        logger.info("\nSearch interrupted by user. Exiting.")
-        sys.exit(0)
+if __name__ == "__main__":
+    main()

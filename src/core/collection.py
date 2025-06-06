@@ -78,7 +78,7 @@ class CollectionBuilder:
         return collection
     
 
-class CollectionManager:
+class CollectionOperator:
     '''
     interacts with the Milvus database, ensures insertion and retrieval of data. 
     '''

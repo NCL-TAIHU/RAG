@@ -22,3 +22,20 @@ Post Processor
 #parse keywords
 
 
+
+分工工作模式
+程式碼分工方式
+git commit
+
+
+ElasticSearch is not a filter in a functional sense. 
+It's a stateful object that needs to be maintained and synchronized with the vector db. 
+The filtered elements is a function of the database state and the query, not just the query. 
+
+Therefore, we need something to track "a thing that can be maintained by insertion of data" 
+That's called a database
+But abstracting a "database" is too abstract, because each database requires drastically different preprocessing techniques and 
+data formats transformation.
+call it a subset, not a filter. 
+
+extract embed abstracts to be a functionality of vector db manager

@@ -18,7 +18,7 @@ This system is composed of the following main modules:
 - **Embedder Interface**: Abstracts both dense and sparse embedding backends:
   - `DenseEmbedder` → e.g., `AutoModelEmbedder`
   - `SparseEmbedder` → e.g., `MilvusBGEM3Embedder`
-- **CollectionBuilder & CollectionManager**: Manages the creation and indexing of Milvus vector databases.
+- **CollectionBuilder & CollectionOperator**: Manages the creation and indexing of Milvus vector databases.
 - **Filter**: Optional preprocessing filters (e.g., `ElasticSearchFilter`) to narrow candidate sets before embedding.
 - **PromptBuilder**: Formats top-k results into LLM-ready prompts.
 - **LLMBuilder**: Loads the instruction-tuned LLM (e.g., `meta-llama/Llama-3.1-8B-Instruct`) for generation.

@@ -28,4 +28,3 @@ if __name__ == "__main__":
     documents = sampler.sample()
     benchmarks = generate_benchmarks(documents, PROMPT, llm)
     save_benchmarks(benchmarks, f"{DATASET}_benchmark.jsonl")
-
