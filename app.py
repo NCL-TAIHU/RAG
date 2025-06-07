@@ -103,7 +103,8 @@ def main():
             continue
 
         # Run search
-        results = app.search(query=user_input, limit=top_k)
+        f = Filter(ids = None, keywords = [])
+        results = app.search(query=user_input, filter = f, limit=top_k)
         print("\n🔍 Search Results:")
         if not results:
             print("No results found.")

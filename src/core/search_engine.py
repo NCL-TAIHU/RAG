@@ -17,7 +17,7 @@ class Filter(BaseModel):
     """
     Class to handle filtering of documents based on metadata.
     """
-    ids: List[str] = None  # filtered results ids need to be in this list
+    ids: Optional[List[str]] = None  # filtered results ids need to be in this list
     keywords: List[str] = [] #filtered results need to contain all keywords
 
 class SearchEngine: 
