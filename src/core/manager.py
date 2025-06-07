@@ -3,7 +3,7 @@ from src.core.entity import Document
 from typing import List
 from src.core.library import Library
 from src.core.embedder import SparseEmbedder, DenseEmbedder
-from src.core.search_engine import Filter, SearchEngine, MilvusSearchEngine, SQLiteSearchEngine
+from src.core.search_engine import Filter, SearchEngine, MilvusSearchEngine, SQLiteSearchEngine, ElasticSearchEngine
 
 class BaseManager: 
     def __init__(self, library): 
@@ -34,67 +34,86 @@ class BaseManager:
         raise NotImplementedError("This method should be overridden by subclasses.")
     
 class HybridManager(BaseManager):
+    """Manages both relational and vector search engines for metadata filtering and vector search."""
+    def __init__(
+            self, 
+            library: Library, 
+            relational_search_engine: SearchEngine, 
+            vector_search_engine: SearchEngine
+        ):
+        super().__init__(library)
+        self.relational_search_engine = relational_search_engine
+        self.vector_search_engine = vector_search_engine
+
+    def setup(self) -> None:
+        self.relational_search_engine.setup()
+        self.vector_search_engine.setup()
+    
+    def insert(self, docs: List[Document]) -> None:
+        self.relational_search_engine.insert(docs)
+        self.vector_search_engine.insert(docs)
+        self.library.insert(docs)
+
+    def run_search(self, query: str, filter: Filter, limit: int) -> List[str]:
+        filtered_ids = self.relational_search_engine.search(query, filter, limit)
+        subset_filter = Filter(ids=filtered_ids, keywords=filter.keywords)
+        return self.vector_search_engine.search(query, subset_filter, limit)
+
+class MonolithManager(BaseManager):
     """
-    Manages the hybrid search engine, relational metadata filtering and vector search.
+    Manages a single search engine for both vector search and metadata filtering.
+    This class is suitable for simpler use cases where a single search engine suffices.
     """
+    def __init__(self, library: Library, search_engine: SearchEngine):
+        super().__init__(library)
+        self.search_engine = search_engine
+
+    def setup(self) -> None:
+        self.search_engine.setup()
+
+    def insert(self, docs: List[Document]) -> None:
+        self.search_engine.insert(docs)
+        self.library.insert(docs)
+
+    def run_search(self, query: str, filter: Filter, limit: int) -> List[str]:
+        return self.search_engine.search(query, filter, limit)
+    
+class MilvusElasticManager(HybridManager):
+    """
+    Manages the Milvus search engine and Elasticsearch for vector search and metadata filtering.
+    """
+    def __init__(self, 
+                 library: Library, 
+                 sparse_embedder: SparseEmbedder, 
+                 dense_embedder: DenseEmbedder, 
+                 elastic_host: str = "https://localhost:9200", 
+                 elastic_index: str = "documents"
+        ):
+        super().__init__(
+            library, 
+            relational_search_engine=ElasticSearchEngine(es_host=elastic_host, es_index=elastic_index), 
+            vector_search_engine=MilvusSearchEngine(sparse_embedder, dense_embedder)
+        )
+        
+class MilvusSQLiteManager(HybridManager):
     def __init__(self, 
                  library: Library, 
                  sparse_embedder: SparseEmbedder, 
                  dense_embedder: DenseEmbedder, 
                  sqlite_path: str = "sqlite.db"
         ):
-        super().__init__(library)
-        self.sparse_embedder = sparse_embedder
-        self.dense_embedder = dense_embedder
-        self.sqlite_path = sqlite_path
+        super().__init__(
+            library, 
+            relational_search_engine=SQLiteManager(library, sqlite_path), 
+            vector_search_engine=MilvusSearchEngine(sparse_embedder, dense_embedder)
+        )
+        
 
-    def setup(self) -> None:
-        """
-        Sets up the hybrid manager and its components.
-        This method should be called before any other operations.
-        """
-        # Initialize SQLite database or any other setup required for hybrid search
-        self.sqlite_search_engine = SQLiteSearchEngine(self.sqlite_path)
-        self.sqlite_search_engine.setup()
-        self.milvus_search_engine = MilvusSearchEngine(self.sparse_embedder, self.dense_embedder)
-        self.milvus_search_engine.setup()
-
-    def insert(self, docs: List[Document]) -> None:
-        # Insert documents into both SQLite and Milvus and Library
-        self.sqlite_search_engine.insert(docs)
-        self.milvus_search_engine.insert(docs)
-        self.library.insert(docs)    
-    
-    def run_search(self, query: str, filter: Filter, limit: int) -> List[str]:
-        filtered_ids = self.sqlite_search_engine.search(query, filter, limit)
-        subset_filter = Filter(ids=filtered_ids, keywords=filter.keywords)
-        return self.milvus_search_engine.search(query, subset_filter, limit)
-
-class SQLiteManager(BaseManager):
-    """
-    Manages the SQLite search engine and relational metadata filtering.
-    """
+class SQLiteManager(MonolithManager):
     def __init__(self, library: Library, sqlite_path: str = "sqlite.db"):
-        super().__init__(library)
-        self.sqlite_path = sqlite_path
-        self.sqlite_search_engine = SQLiteSearchEngine(self.sqlite_path)
-
-    def setup(self) -> None:
-        """
-        Sets up the SQLite manager and its components.
-        This method should be called before any other operations.
-        """
-        self.sqlite_search_engine.setup()
-
-    def insert(self, docs: List[Document]) -> None:
-        # Insert documents into SQLite and Library
-        self.sqlite_search_engine.insert(docs)
-        self.library.insert(docs)
-
-    def run_search(self, query: str, filter: Filter, limit: int) -> List[str]:
-        return self.sqlite_search_engine.search(query, filter, limit)
+        super().__init__(library, SQLiteSearchEngine(db_path=sqlite_path))
     
-class MilvusManager(BaseManager):
+class MilvusManager(MonolithManager):
     """
     Manages the Milvus search engine and vector search.
     """
@@ -102,22 +121,7 @@ class MilvusManager(BaseManager):
                  sparse_embedder: SparseEmbedder, 
                  dense_embedder: DenseEmbedder
         ):
-        super().__init__(library)
-        self.sparse_embedder = sparse_embedder
-        self.dense_embedder = dense_embedder
-        self.milvus_search_engine = MilvusSearchEngine(self.sparse_embedder, self.dense_embedder)
-
-    def setup(self) -> None:
-        """
-        Sets up the Milvus manager and its components.
-        This method should be called before any other operations.
-        """
-        self.milvus_search_engine.setup()
-
-    def insert(self, docs: List[Document]) -> None:
-        # Insert documents into Milvus and Library
-        self.milvus_search_engine.insert(docs)
-        self.library.insert(docs)
-
-    def run_search(self, query: str, filter: Filter, limit: int) -> List[str]:
-        return self.milvus_search_engine.search(query, filter, limit)
+        super().__init__(
+            library, 
+            MilvusSearchEngine(sparse_embedder, dense_embedder)
+        )

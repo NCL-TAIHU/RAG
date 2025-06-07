@@ -10,7 +10,7 @@ from src.utils.logging import setup_logger
 from scipy.sparse import csr_array
 from typing import List
 import sys
-from src.core.manager import BaseManager, HybridManager   
+from src.core.manager import BaseManager, MilvusElasticManager
 from tqdm import tqdm
 CHATBOT = "meta-llama/Llama-3.1-8B-Instruct"
 DENSE_EMBEDDER = "sentence-transformers/all-MiniLM-L6-v2"
@@ -67,7 +67,11 @@ def main():
     library: Library = InMemoryLibrary()
     sparse_embedder: SparseEmbedder = BGEM3Embedder(model_name=SPARSE_EMBEDDER)
     dense_embedder: DenseEmbedder = AutoModelEmbedder(model_name=DENSE_EMBEDDER)
-    manager: BaseManager = HybridManager(library, sparse_embedder, dense_embedder)
+    manager: BaseManager = MilvusElasticManager(library=library,
+                                                sparse_embedder=sparse_embedder,
+                                                dense_embedder=dense_embedder,
+                                                elastic_host="https://localhost:9200",
+                                                elastic_index="documents")
     app = SearchApp(dataloader, manager)
     app.setup()
 

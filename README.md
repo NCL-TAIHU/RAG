@@ -1,6 +1,6 @@
 # 📚 TAIHU: Modular Document Discovery System
 
-Taihu is a modular, benchmark-driven document retrieval and generation system designed for scholarly and domain-specific search. It integrates dense and sparse embeddings, hybrid search via Milvus, structural metadata queries using ElasticSearch, and LLM-based response generation.
+**Taihu** is a modular, benchmark-driven document retrieval and generation framework for scholarly and domain-specific search. It supports hybrid search over dense and sparse embeddings, structural filtering via relational engines (e.g., Elasticsearch, SQLite), and LLM-based response generation.
 
 ---
 
@@ -8,68 +8,80 @@ Taihu is a modular, benchmark-driven document retrieval and generation system de
 
 ### 📌 Modular Dependency Diagram
 
-![Architecture Diagram](./assets/TaihuMDD.drawio%20(4).svg)
+![Architecture Diagram](./assets/TaihuMDD.drawio%20(6).svg)
 
-This system is composed of the following main modules:
+This system is designed as a clean Directed Acyclic Graph (DAG) of modular components. Dependencies are managed through interfaces, and inheritance is explicitly visualized to encourage extensibility and testability.
 
-- **SearchApp**: Core controller that interfaces with embedder modules, data loaders, filters, and LLMs.
-- **Sampler**: Provides sampling logic over datasets for benchmarking and evaluation.
-- **DataLoader**: Responsible for loading dataset documents and converting them into `Document` objects.
-- **Embedder Interface**: Abstracts both dense and sparse embedding backends:
-  - `DenseEmbedder` → e.g., `AutoModelEmbedder`
-  - `SparseEmbedder` → e.g., `MilvusBGEM3Embedder`
-- **CollectionBuilder & CollectionOperator**: Manages the creation and indexing of Milvus vector databases.
-- **Filter**: Optional preprocessing filters (e.g., `ElasticSearchFilter`) to narrow candidate sets before embedding.
-- **PromptBuilder**: Formats top-k results into LLM-ready prompts.
-- **LLMBuilder**: Loads the instruction-tuned LLM (e.g., `meta-llama/Llama-3.1-8B-Instruct`) for generation.
-- **Benchmark**: Evaluates retrieval performance using a set of ground truth (query, document) pairs.
+### 🔧 Core Component Layers
 
----
+| Layer | Description |
+|-------|-------------|
+| 🟥 **Execution Layer** | Entry points for full workflow orchestration: `SearchApp`, `SearchAppEvaluator`, and `Benchmark`. |
+| 🟨 **Manager Layer** | Classes like `HybridManager` and `MonolithManager` control composition of relational and vector search engines. |
+| 🟦 **Engine Layer** | `SearchEngine` implementations for Milvus, Elasticsearch, SQLite. All support a shared `search()` interface. |
+| 🟩 **Embedding Layer** | `DenseEmbedder` and `SparseEmbedder` interfaces with concrete implementations like `BGEM3Embedder`. |
+| 🟫 **Library Layer** | Manages document storage and retrieval by ID. Supports in-memory, file-based, or database-backed storage. |
+| ⬜ **LLM Layer** | Prompts are formatted via `PromptBuilder` and generated using `LLMBuilder` (e.g., LLaMA3-8B). |
 
-## 📊 Benchmark-Driven Development
-
-TaihuMDD includes a benchmark suite that validates search quality using a `.jsonl` benchmark file of query-answer pairs.
-
-The `SearchAppEvaluator` evaluates precision, recall, and exact-match against known ground truths — enabling rapid iteration and measurable progress.
+> 💡 *This layered structure allows any module to be swapped or extended independently.*
 
 ---
 
-## 🎯 Design Goals
+## 🧪 Benchmark-Driven Development
 
-1. **Modular & Testable**: Interfaces for embedders, samplers, and filters encourage easy extension and unit testing.
-2. **Embedding-Agnostic**: Plug-and-play support for dense (`MiniLM`) and sparse (`BGE-M3`) embedding models.
-3. **Benchmark-Centric**: Reproducible evaluation pipeline to guide improvements.
-4. **Ready for Scale**: Milvus vector DB support and dataset abstractions enable scaling to millions of documents.
-5. **LLM-Augmented**: Response generation is powered by instruction-tuned LLMs with customizable prompts.
+Taihu includes a benchmark suite defined in `.jsonl` format, containing queries and their expected relevant document IDs. The `SearchAppEvaluator` measures:
 
----
+- Top-k retrieval accuracy
+- Precision/Recall/F1
+- Exact-match metrics
 
-## 🛠️ File Index (Color-Coded from Diagram)
-
-| Color        | Type                            | Description                                |
-|--------------|----------------------------------|--------------------------------------------|
-| 🟦 Blue      | Interface/Implementation        | Core functionality (e.g., Embedder, Filter)|
-| 🟨 Yellow    | Base Classes / Abstract Layer   | Shared behavior interfaces (e.g., `Sampler`)|
-| 🟩 Green     | Data / Configuration            | Classes for config/data (e.g., `Document`) |
-| 🟥 Red       | Execution / External Systems    | LLM, Elasticsearch, Milvus                 |
-| 🟪 Gray      | Operation Flow (flowchart)      | Shows how data flows from input to response|
+This enables reproducible comparisons across embedding models, search engines, and prompt formats.
 
 ---
 
-## 📌 TODO / Future Work
+## 🎯 Design Principles
 
-- [ ] Implement Samplers for sampling Benchmark
-- [ ] Implement Metadata filtering using ElasticSearch in ElasticSearchFilter
+1. **Modular and Extensible**  
+   Interfaces like `SearchEngine`, `Embedder`, and `Sampler` are used throughout — making experimentation safe and localized.
+
+2. **Hybrid Search Ready**  
+   Combines keyword-based filtering (e.g., Elasticsearch) with vector similarity (e.g., Milvus), optionally reranked by LLMs.
+
+3. **Embedding-Agnostic**  
+   Supports both dense (`MiniLM`, `E5`, etc.) and sparse (`BGE-M3`) models via interchangeable embedders.
+
+4. **LLM-Augmented**  
+   Uses LLMs to generate or refine responses from top-k hits, with clean prompting strategies.
+
+5. **Storage-Agnostic**  
+   Document storage (`Library`) can be swapped between memory, file, or SQL depending on the environment.
 
 ---
 
-## 📂 Diagram Source
+## 🧱 File Index & Diagram Color Legend
 
-- Architecture source editable via [draw.io](https://draw.io)
-- File: `TaihuMDD.drawio.svg` or `.png` in repo
+| Color        | Category                         | Examples                                    |
+|--------------|----------------------------------|---------------------------------------------|
+| 🟦 Blue      | Interfaces / Engines             | `SearchEngine`, `MilvusSearchEngine`, etc.  |
+| 🟨 Yellow    | Abstract Base Managers           | `BaseManager`, `MonolithManager`            |
+| 🟩 Green     | Data / Document Entity           | `Document`, `Filter`, `MetaData`            |
+| 🟥 Red       | Execution & Evaluation Modules   | `SearchApp`, `Benchmark`, `SearchAppEvaluator` |
+| 🟪 Gray      | Operation Flow (flowchart)       | Raw data → Embedder → Index → Search → LLM |
 
 ---
 
-## 📄 License
+## 🛠️ Elasticsearch Setup (Secured, Local Only)
 
-MIT License © 2025 Jerome Tze-Hou Hsu
+```bash
+# Step 1: Download
+wget https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-9.0.2-linux-x86_64.tar.gz
+
+# Step 2: Extract
+tar -xzf elasticsearch-9.0.2-linux-x86_64.tar.gz
+mv elasticsearch-9.0.2 elasticsearch
+
+# Step 3: Start
+cd elasticsearch
+bin/elasticsearch
+
+# Elasticsearch will print a password and start on https://localhost:9200

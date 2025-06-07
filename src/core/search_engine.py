@@ -4,7 +4,6 @@ from src.core.embedder import SparseEmbedder, DenseEmbedder
 from src.core.entity import Document
 from src.core.collection import FieldConfig, IndexConfig, CollectionConfig, CollectionOperator, CollectionBuilder
 from typing import List
-from src.core.search_engine import SearchEngine
 from pymilvus import (
     DataType,
     Collection,
@@ -12,12 +11,13 @@ from pymilvus import (
 from pymilvus.client.abstract import Hits, Hit
 from elasticsearch import Elasticsearch
 from pydantic import BaseModel
+import yaml
 
 class Filter(BaseModel):
     """
     Class to handle filtering of documents based on metadata.
     """
-    ids: List[str] = None  # List of document IDs to filter by
+    ids: List[str] = None  # filtered results ids need to be in this list
     keywords: List[str] = [] #filtered results need to contain all keywords
 
 class SearchEngine: 
@@ -132,19 +132,11 @@ class MilvusSearchEngine(SearchEngine):
         return [hit.fields.get("pk", "") for hit in hits]
 
 class SQLiteSearchEngine(SearchEngine):
-    #TODO: This is a dummy implementation, needs to be improved
     def __init__(self, db_path: str):
-        """
-        Initializes the SQLiteSearchEngine with the path to the SQLite database.
-        :param db_path: Path to the SQLite database file.
-        """
         self.db_path = db_path
         self.connection = None
 
     def setup(self):
-        """
-        Sets up the SQLite database connection and creates necessary tables.
-        """
         import sqlite3
         self.connection = sqlite3.connect(self.db_path)
         cursor = self.connection.cursor()
@@ -159,10 +151,6 @@ class SQLiteSearchEngine(SearchEngine):
         self.connection.commit()
 
     def insert(self, docs: List[Document]):
-        """
-        Inserts a list of documents into the SQLite database.
-        :param docs: A list of Document objects to be inserted.
-        """
         cursor = self.connection.cursor()
         for doc in docs:
             cursor.execute('''
@@ -172,74 +160,58 @@ class SQLiteSearchEngine(SearchEngine):
         self.connection.commit()
 
     def search(self, query: str, filter: Filter, limit: int = 10) -> List[str]:
-        """
-        Searches for documents based on a natural language query and optional metadata filters.
-        :param query: The natural language query to search for.
-        :param filter: Optional metadata filters to apply to the search.
-        :param limit: The maximum number of documents to return.
-        :return: A list of document IDs that match the search criteria.
-        """
         cursor = self.connection.cursor()
-        
-        sql_query = f'''
+        sql_query = '''
             SELECT id FROM documents
-            WHERE abstract LIKE ? OR content LIKE ?
-            LIMIT ?
-        '''
-        
-        params = [f'%{query}%', f'%{query}%', limit]
-        
+            WHERE 1=1'''
+        params = []
+
         if filter.ids:
             sql_query += ' AND id IN ({})'.format(','.join(['?'] * len(filter.ids)))
             params.extend(filter.ids)
 
+        if filter.keywords:
+            for kw in filter.keywords:
+                sql_query += ' AND keywords LIKE ?'
+                params.append(f"%{kw}%")
+
+        sql_query += ' LIMIT ?'
+        params.append(limit)
         cursor.execute(sql_query, params)
-        
-        results = cursor.fetchall()
+        return [row[0] for row in cursor.fetchall()]
 
-        return [row[0] for row in results]
-
-    
 class ElasticSearchEngine(SearchEngine):
-    #TODO: This is a dummy implementation, needs to be improved
     def __init__(self, es_host: str, es_index: str):
-        """
-        Initializes the ElasticSearchEngine with the host and index name.
-        :param es_host: The host URL of the Elasticsearch instance.
-        :param es_index: The name of the Elasticsearch index to use.
-        """
-        self.es = Elasticsearch([es_host])
+        config = yaml.safe_load(open("config/elastic_search.yml", "r"))
+        self.es = Elasticsearch([es_host], 
+                                basic_auth=("elastic", config["password"]),
+                                verify_certs=True,
+                                ca_certs=config["ca_certs"] 
+                            ) 
         self.es_index = es_index
 
     def setup(self):
-        """
-        Sets up the Elasticsearch index if it does not exist.
-        """
-        if not self.es.indices.exists(index=self.es_index):
-            self.es.indices.create(index=self.es_index)
+        # Always drop and recreate the index to ensure it's clean
+        if self.es.indices.exists(index=self.es_index):
+            self.es.indices.delete(index=self.es_index)
+        self.es.indices.create(index=self.es_index)
 
     def insert(self, docs: List[Document]):
-        """
-        Inserts a list of documents into the Elasticsearch index.
-        :param docs: A list of Document objects to be inserted.
-        """
         for doc in docs:
             self.es.index(index=self.es_index, id=doc.id, body=doc.dict())
 
     def search(self, query: str, filter: Filter, limit: int = 10) -> List[str]:
-        """
-        Searches for documents based on a natural language query and optional metadata filters.
-        :param query: The natural language query to search for.
-        :param filter: Optional metadata filters to apply to the search.
-        :param limit: The maximum number of documents to return.
-        :return: A list of document IDs that match the search criteria.
-        """
-        body = {
+        must_filters = []
+        keyword_filters = []
+
+        if filter.keywords:
+            for kw in filter.keywords:
+                keyword_filters.append({"match_phrase": {"keywords": kw}})
+
+        es_query = {
             "query": {
                 "bool": {
-                    "must": [
-                        {"multi_match": {"query": query, "fields": ["abstract", "content"]}}
-                    ],
+                    "must": must_filters + keyword_filters,
                     "filter": []
                 }
             },
@@ -247,9 +219,7 @@ class ElasticSearchEngine(SearchEngine):
         }
 
         if filter.ids:
-            body["query"]["bool"]["filter"].append({
-                "terms": {"_id": filter.ids}
-            })
+            es_query["query"]["bool"]["filter"].append({"terms": {"_id": filter.ids}})
 
-        response = self.es.search(index=self.es_index, body=body)
+        response = self.es.search(index=self.es_index, body=es_query)
         return [hit["_id"] for hit in response["hits"]["hits"]]
