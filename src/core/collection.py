@@ -14,6 +14,9 @@ from pydantic import BaseModel
 from tqdm import tqdm
 from typing import List, Dict, Optional
 from scipy.sparse import csr_array
+import logging
+
+logger = logging.getLogger(__name__)
 
 class FieldConfig(BaseModel): 
     name: str

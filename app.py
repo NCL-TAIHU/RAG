@@ -22,7 +22,7 @@ logger = setup_logger(
     log_file = 'logs/output.log', 
     console = True,
     file = False,
-    level = "INFO"  # Set to DEBUG for detailed logs
+    level = "DEBUG"  # Set to DEBUG for detailed logs
 )
 
 class SearchApp:

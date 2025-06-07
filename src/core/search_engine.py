@@ -38,7 +38,7 @@ class SearchEngine:
         """
         raise NotImplementedError("This method should be overridden by subclasses.")
     
-    def search(self, query: str, filter: Filter, limit: int) -> List[str]:
+    def search(self, query: str, filter: Filter, limit: Optional[int]) -> List[str]:
         """
         Searches for documents based on a natural language query and optional metadata filters.
         :param query: The natural language query to search for.
@@ -200,13 +200,12 @@ class ElasticSearchEngine(SearchEngine):
         for doc in docs:
             self.es.index(index=self.es_index, id=doc.id, body=doc.dict())
 
-    def search(self, query: str, filter: Filter, limit: int = 10) -> List[str]:
+    def search(self, query: str, filter: Filter, limit: int = 10000) -> List[str]:
         must_filters = []
         keyword_filters = []
 
-        if filter.keywords:
-            for kw in filter.keywords:
-                keyword_filters.append({"match_phrase": {"keywords": kw}})
+        for kw in filter.keywords:
+            keyword_filters.append({"match_phrase": {"keywords": kw}})
 
         es_query = {
             "query": {

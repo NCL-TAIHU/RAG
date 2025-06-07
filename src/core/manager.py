@@ -4,6 +4,8 @@ from typing import List
 from src.core.library import Library
 from src.core.embedder import SparseEmbedder, DenseEmbedder
 from src.core.search_engine import Filter, SearchEngine, MilvusSearchEngine, SQLiteSearchEngine, ElasticSearchEngine
+import logging 
+logger = logging.getLogger(__name__)
 
 class BaseManager: 
     def __init__(self, library): 
@@ -55,8 +57,10 @@ class HybridManager(BaseManager):
         self.library.insert(docs)
 
     def run_search(self, query: str, filter: Filter, limit: int) -> List[str]:
-        filtered_ids = self.relational_search_engine.search(query, filter, limit)
+        logger.debug(f"doing relational search with filter: {filter}")
+        filtered_ids = self.relational_search_engine.search(query, filter)
         subset_filter = Filter(ids=filtered_ids, keywords=filter.keywords)
+        logger.debug(f"doing vector search with subset filter: {subset_filter}")
         return self.vector_search_engine.search(query, subset_filter, limit)
 
 class MonolithManager(BaseManager):
