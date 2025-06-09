@@ -39,3 +39,6 @@ data formats transformation.
 call it a subset, not a filter. 
 
 extract embed abstracts to be a functionality of vector db manager
+
+
+at the manager level, we want to include routing capability, thus we should delegate hybrid-orchestration to search engine level

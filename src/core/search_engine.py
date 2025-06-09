@@ -20,6 +20,13 @@ class Filter(BaseModel):
     ids: Optional[List[str]] = None  # filtered results ids need to be in this list
     keywords: List[str] = [] #filtered results need to contain all keywords
 
+class SearchSpec(BaseModel):
+    '''
+    Description of the strengths and weaknesses of a search engine, used by router to determine which search engine to use.
+    '''
+    name: str
+    
+
 class SearchEngine: 
     '''
     Highest level class that inserts documents and retrieves answers based on natural language queries and metadata filters. 
@@ -48,7 +55,34 @@ class SearchEngine:
         :return: A list of document IDs that match the search criteria.
         """
         raise NotImplementedError("This method should be overridden by subclasses.")
+    
+    def spec(self) -> SearchSpec: 
+        raise NotImplementedError("This method should be overridden by subclasses.")
 
+class HybridSearchEngine(SearchEngine):
+    """
+    A search engine that combines both relational and vector search capabilities.
+    It uses a relational search engine for metadata filtering and a vector search engine for semantic search.
+    """
+    def __init__(self, relational_search_engine: SearchEngine, vector_search_engine: SearchEngine):
+        self.relational_search_engine = relational_search_engine
+        self.vector_search_engine = vector_search_engine
+
+    def setup(self):
+        self.relational_search_engine.setup()
+        self.vector_search_engine.setup()
+
+    def insert(self, docs: List[Document]):
+        self.relational_search_engine.insert(docs)
+        self.vector_search_engine.insert(docs)
+
+    def search(self, query: str, filter: Filter, limit: int = 10) -> List[str]:
+        filtered_ids = self.relational_search_engine.search(query, filter)
+        subset_filter = Filter(ids=filtered_ids, keywords=filter.keywords)
+        return self.vector_search_engine.search(query, subset_filter, limit=limit)
+    
+    def spec(self) -> SearchSpec:
+        return SearchSpec(name="hybrid_search_engine")
 
 class MilvusSearchEngine(SearchEngine): 
     def __init__(self, sparse_embedder: SparseEmbedder, dense_embedder: DenseEmbedder):
@@ -130,6 +164,9 @@ class MilvusSearchEngine(SearchEngine):
         )
         hits: Hits = results[0]
         return [hit.fields.get("pk", "") for hit in hits]
+    
+    def spec(self) -> SearchSpec:
+        return SearchSpec(name="milvus_search_engine")
 
 class SQLiteSearchEngine(SearchEngine):
     def __init__(self, db_path: str):
@@ -179,7 +216,10 @@ class SQLiteSearchEngine(SearchEngine):
         params.append(limit)
         cursor.execute(sql_query, params)
         return [row[0] for row in cursor.fetchall()]
-
+    
+    def spec(self) -> SearchSpec:
+        return SearchSpec(name="sqlite_search_engine")
+    
 class ElasticSearchEngine(SearchEngine):
     def __init__(self, es_host: str, es_index: str):
         config = yaml.safe_load(open("config/elastic_search.yml", "r"))
@@ -222,3 +262,6 @@ class ElasticSearchEngine(SearchEngine):
 
         response = self.es.search(index=self.es_index, body=es_query)
         return [hit["_id"] for hit in response["hits"]["hits"]]
+    
+    def spec(self) -> SearchSpec:
+        return SearchSpec(name="elastic_search_engine")

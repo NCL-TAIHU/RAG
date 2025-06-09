@@ -4,13 +4,13 @@ from src.core.embedder import DenseEmbedder, SparseEmbedder, AutoModelEmbedder, 
 from src.core.data import DataLoader
 from src.core.prompt import PromptBuilder
 from src.core.entity import Document
-from src.core.search_engine import SearchEngine, Filter
+from src.core.search_engine import SearchEngine, Filter, HybridSearchEngine, MilvusSearchEngine, ElasticSearchEngine
 from src.core.library import Library, InMemoryLibrary, FilesLibrary
 from src.utils.logging import setup_logger
 from scipy.sparse import csr_array
 from typing import List
 import sys
-from src.core.manager import BaseManager, MilvusElasticManager
+from src.core.manager import Manager, MilvusElasticManager, MilvusManager
 from tqdm import tqdm
 CHATBOT = "meta-llama/Llama-3.1-8B-Instruct"
 DENSE_EMBEDDER = "sentence-transformers/all-MiniLM-L6-v2"
@@ -33,10 +33,10 @@ class SearchApp:
     the database schema is defined statically, as it does not change per instance, but if there's another app, 
     it may have a different schema or embedding strategy.
     '''
-    def __init__(self, dataloader: DataLoader, manager: BaseManager):
+    def __init__(self, dataloader: DataLoader, manager: Manager):
         """Initialize the SearchApp."""
         self.data_loader: DataLoader = dataloader 
-        self.manager: BaseManager = manager
+        self.manager: Manager = manager
 
     def setup(self):
         self.manager.setup()
@@ -67,11 +67,9 @@ def main():
     library: Library = InMemoryLibrary()
     sparse_embedder: SparseEmbedder = BGEM3Embedder(model_name=SPARSE_EMBEDDER)
     dense_embedder: DenseEmbedder = AutoModelEmbedder(model_name=DENSE_EMBEDDER)
-    manager: BaseManager = MilvusElasticManager(library=library,
-                                                sparse_embedder=sparse_embedder,
-                                                dense_embedder=dense_embedder,
-                                                elastic_host="https://localhost:9200",
-                                                elastic_index="documents")
+    engine = HybridSearchEngine(relational_search_engine=ElasticSearchEngine("https://localhost:9200", "documents"),
+                                vector_search_engine=MilvusSearchEngine(sparse_embedder, dense_embedder))
+    manager = Manager(library, [engine], router_name="simple")
     app = SearchApp(dataloader, manager)
     app.setup()
 
