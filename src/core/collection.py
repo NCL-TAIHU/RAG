@@ -14,6 +14,9 @@ from pydantic import BaseModel
 from tqdm import tqdm
 from typing import List, Dict, Optional
 from scipy.sparse import csr_array
+import logging
+
+logger = logging.getLogger(__name__)
 
 class FieldConfig(BaseModel): 
     name: str
@@ -78,7 +81,7 @@ class CollectionBuilder:
         return collection
     
 
-class CollectionManager:
+class CollectionOperator:
     '''
     interacts with the Milvus database, ensures insertion and retrieval of data. 
     '''
@@ -111,7 +114,7 @@ class CollectionManager:
             query_vector: List[float], 
             limit: int = 10, 
             subset_ids: Optional[List[str]] = None,
-            output_fields: List[str] = ["pk", "abstract", "keywords", "content"]
+            output_fields: List[str] = ["pk"]
         ):
         self.collection.load()
         search_params = {"metric_type": "IP", "params": {"nprobe": 10}}
@@ -130,7 +133,7 @@ class CollectionManager:
             query_vector: csr_array, 
             limit: int = 10, 
             subset_ids: Optional[List[str]] = None,
-            output_fields: List[str] = ["pk", "abstract", "keywords", "content"]
+            output_fields: List[str] = ["pk"]
         ):
         self.collection.load()
         search_params = {"metric_type": "IP", "params": {}}
@@ -151,7 +154,7 @@ class CollectionManager:
         alpha: float = 0.5,
         limit: int = 10,
         subset_ids: Optional[List[str]] = None,
-        output_fields: List[str] = ["pk", "abstract", "keywords", "content"]
+        output_fields: List[str] = ["pk"]
     ) -> SearchResult:
         """
         Performs a hybrid search with dense and sparse vectors.
@@ -162,13 +165,13 @@ class CollectionManager:
         dense_req = AnnSearchRequest(
             [dense_vector], "dense_vector", dense_search_params, limit=limit, expr=self._subset_expr(subset_ids)
         )
-        print(f"dense vector size {len(dense_vector)}")
+        #print(f"dense vector size {len(dense_vector)}")
 
         sparse_search_params = {"metric_type": "IP", "params": {}}
         sparse_req = AnnSearchRequest(
             [sparse_vector], "sparse_vector", sparse_search_params, limit=limit, expr=self._subset_expr(subset_ids)
         )
-        print(f"sparse vector size {sparse_vector.shape[1]}")
+        #print(f"sparse vector size {sparse_vector.shape[1]}")
         search_params = {
             "metric_type": "IP",
             "params": {

@@ -1,3 +1,6 @@
+from typing import List
+from src.core.entity import Document
+
 class PromptBuilder():
     def __init__(self, system_prompt: str = None):
         self.system_prompt = system_prompt
@@ -28,6 +31,14 @@ class PromptBuilder():
         """添加檢索結果到提示中"""
         self.retrieval_results += results + ','
         self.history.append(f"Retrieval Results: {results}")
+        return self
+    
+    def add_documents(self, documents: List[Document]):
+        """添加文檔到提示中"""
+        if not documents:
+            return self
+        results = "\n".join([f"{doc.abstract}" for doc in documents])
+        self.add_retrieval_results(results)
         return self
     
     def build_prompt(self) -> str:

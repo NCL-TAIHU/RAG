@@ -20,6 +20,8 @@ wheels/
 .installed.cfg
 *.egg
 
+/config/elastic_search.yml
+
 # Virtual Environment
 venv/
 env/
