@@ -17,19 +17,30 @@ class Filter(BaseModel):
     """
     Class to handle filtering of documents based on metadata.
     """
-    #filter clauses 
-    ids: Optional[List[str]] = None  # filtered results ids need to be in this list
-    years: Optional[List[int]] = None  # filtered results need to be in this list
+    #filter clauses, filtered results need to match at least one of these clauses
+    ids: Optional[List[str]] = None  
+    years: Optional[List[int]] = None  
+    categories: Optional[List[str]] = None  
+    schools: Optional[List[str]] = None  
+    depts: Optional[List[str]] = None  
+    
     #must clauses
     keywords: List[str] = [] #filtered results need to contain all keywords
-    authors: List[str] = []  # filtered results need to contain this author
-    advisors: List[str] = []  # filtered results need to contain this advisor
+    authors: List[str] = []  # filtered results need to contain these authors
+    advisors: List[str] = []  # filtered results need to contain these advisors
+
+    def must_fields(self): 
+        return ['keywords', 'authors', 'advisors']
+    
+    def filter_fields(self):
+        return ['ids', 'years', 'categories', 'schools', 'depts']
 
 class SearchSpec(BaseModel):
     '''
     Description of the strengths and weaknesses of a search engine, used by router to determine which search engine to use.
     '''
     name: str
+    optimal_for: Optional[str] = None # e.g., "strong", "weak" filters 
     
 
 class SearchEngine: 
@@ -87,7 +98,7 @@ class HybridSearchEngine(SearchEngine):
         return self.vector_search_engine.search(query, subset_filter, limit=limit)
     
     def spec(self) -> SearchSpec:
-        return SearchSpec(name="hybrid_search_engine")
+        return SearchSpec(name="hybrid_search_engine", optimal_for="strong")
 
 class MilvusSearchEngine(SearchEngine): 
     def __init__(self, sparse_embedder: SparseEmbedder, dense_embedder: DenseEmbedder):
@@ -130,12 +141,6 @@ class MilvusSearchEngine(SearchEngine):
         self.collection = builder.build()
         self.operator = CollectionOperator(self.collection)
 
-    def embed_documents(self, documents: List[Document]):
-        abstracts = [doc.chinese.abstract for doc in documents]
-        dense_embeddings = self.dense_embedder.embed(abstracts)
-        sparse_embeddings = self.sparse_embedder.embed(abstracts)
-        return dense_embeddings, sparse_embeddings
-    
     def embed_query(self, query: str):
         dense_vector = self.dense_embedder.embed([query])[0]
         sparse_vector = self.sparse_embedder.embed([query])
@@ -176,7 +181,7 @@ class MilvusSearchEngine(SearchEngine):
         return [hit.fields.get("pk", "") for hit in hits]
     
     def spec(self) -> SearchSpec:
-        return SearchSpec(name="milvus_search_engine")
+        return SearchSpec(name="milvus_search_engine", optimal_for="weak")
 
 class SQLiteSearchEngine(SearchEngine):
     def __init__(self, db_path: str):
@@ -228,7 +233,7 @@ class SQLiteSearchEngine(SearchEngine):
         return [row[0] for row in cursor.fetchall()]
     
     def spec(self) -> SearchSpec:
-        return SearchSpec(name="sqlite_search_engine")
+        return SearchSpec(name="sqlite_search_engine", optimal_for="strong")
     
 class ElasticSearchEngine(SearchEngine):
     def __init__(self, es_host: str, es_index: str):
@@ -316,4 +321,4 @@ class ElasticSearchEngine(SearchEngine):
         return [hit["_id"] for hit in response["hits"]["hits"]]
 
     def spec(self) -> SearchSpec:
-        return SearchSpec(name="elastic_search_engine")
+        return SearchSpec(name="elastic_search_engine", optimal_for="strong")

@@ -23,6 +23,8 @@ class Router:
         """
         if name == "simple":
             return SimpleRouter(specs)
+        elif name == "sparsity":
+            return SparsityRouter(specs)
         else:
             raise ValueError(f"Unknown router type: {name}. Supported types: 'simple'.")
     
@@ -30,3 +32,15 @@ class SimpleRouter(Router):
     def route(self, filter: Filter) -> int:
         return 0
         
+class SparsityRouter(Router):
+    def route(self, filter: Filter) -> int:
+        """
+        Routes the filter to the first search specification that matches the filter's sparsity criteria.
+        """
+        sparse_engines = [i for i, spec in enumerate(self.specs) if spec.optimal_for == 'strong'] #strong filters
+        dense_engines = [i for i, spec in enumerate(self.specs) if spec.optimal_for == 'weak']
+        for field in filter.must_fields(): 
+            if getattr(filter, field) is not None: 
+                return sparse_engines[0] if sparse_engines else dense_engines[0]
+            
+        return dense_engines[0] if dense_engines else sparse_engines[0]

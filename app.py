@@ -67,10 +67,10 @@ def main():
     library: Library = InMemoryLibrary()
     sparse_embedder: SparseEmbedder = BGEM3Embedder(model_name=SPARSE_EMBEDDER)
     dense_embedder: DenseEmbedder = AutoModelEmbedder(model_name=DENSE_EMBEDDER)
-    engine = HybridSearchEngine(relational_search_engine=ElasticSearchEngine("https://localhost:9200", "documents"),
+    engine1 = HybridSearchEngine(relational_search_engine=ElasticSearchEngine("https://localhost:9200", "documents"),
                                 vector_search_engine=MilvusSearchEngine(sparse_embedder, dense_embedder))
-    #engine = MilvusSearchEngine(sparse_embedder, dense_embedder)
-    manager = Manager(library, [engine], router_name="simple")
+    engine2 = MilvusSearchEngine(sparse_embedder, dense_embedder)
+    manager = Manager(library, [engine1, engine2], router_name="sparsity")
     app = SearchApp(dataloader, manager)
     app.setup()
 
