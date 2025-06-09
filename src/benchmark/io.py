@@ -7,7 +7,7 @@ def save_report(report: Report, file_path: str):
     Saves the evaluation report to a file in JSON format.
     '''
     with open(file_path, 'w', encoding='utf-8') as f:
-        json.dump(report.model_dump(), f, indent=4)
+        json.dump(report.model_dump(), f, indent=4, ensure_ascii=False)
 
 def save_benchmarks(benchmarks: List[Benchmark], file_path: str):
     '''
@@ -16,7 +16,7 @@ def save_benchmarks(benchmarks: List[Benchmark], file_path: str):
     '''
     with open(file_path, 'w', encoding='utf-8') as f:
         for b in benchmarks:
-            json.dump(b.model_dump(), f)
+            json.dump(b.model_dump(), f, ensure_ascii=False)
             f.write('\n')
 
 

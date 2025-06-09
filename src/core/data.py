@@ -3,6 +3,8 @@ import os
 from typing import Any, Iterator, List
 import json
 import yaml
+import random
+from itertools import chain
 config = yaml.safe_load(open("config/data.yml", "r"))
 
 class DataLoader: 
@@ -118,12 +120,28 @@ class JsonDataLoader(DataLoader):
 
 
 class Sampler: 
+    def __init__(self, dataloader: DataLoader, n: int, seed: int = 42):
+        """
+        Initializes the Sampler with a DataLoader and number of documents to sample.
+        :param dataloader: A DataLoader instance that yields documents in batches.
+        :param n: Number of documents to sample.
+        :param seed: Random seed for reproducibility.
+        """
+        self.dataloader = dataloader
+        self.n = n
+        self.seed = seed
     def sample(self) -> List[Document]: 
         """
-        Samples a list of documents from a dataset
+        Samples `n` documents randomly from the data loader.
         """
-        raise NotImplementedError("Subclasses should implement this method.")
-    
+        # Flatten all batches into a single list
+        all_documents = list(chain.from_iterable(self.dataloader.load()))
+        
+        if len(all_documents) < self.n:
+            raise ValueError(f"Not enough documents to sample: requested {self.n}, but only {len(all_documents)} available.")
+
+        random.seed(self.seed)
+        return random.sample(all_documents, self.n)
 
 class DummySampler(Sampler):
     def __init__(self, dataset: str):
