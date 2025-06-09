@@ -1,5 +1,8 @@
 arxiv: 
   path: /home/jth264/.cache/kagglehub/datasets/Cornell-University/arxiv/versions/235/arxiv-metadata-oai-snapshot.json
   
+ncl: 
+  path: /home/jth264/data/ncl_json
+
 history: 
   path: data/history

@@ -17,8 +17,13 @@ class Filter(BaseModel):
     """
     Class to handle filtering of documents based on metadata.
     """
+    #filter clauses 
     ids: Optional[List[str]] = None  # filtered results ids need to be in this list
+    years: Optional[List[int]] = None  # filtered results need to be in this list
+    #must clauses
     keywords: List[str] = [] #filtered results need to contain all keywords
+    authors: List[str] = []  # filtered results need to contain this author
+    advisors: List[str] = []  # filtered results need to contain this advisor
 
 class SearchSpec(BaseModel):
     '''
@@ -126,7 +131,7 @@ class MilvusSearchEngine(SearchEngine):
         self.operator = CollectionOperator(self.collection)
 
     def embed_documents(self, documents: List[Document]):
-        abstracts = [doc.abstract for doc in documents]  # List of abstracts
+        abstracts = [doc.chinese.abstract for doc in documents]
         dense_embeddings = self.dense_embedder.embed(abstracts)
         sparse_embeddings = self.sparse_embedder.embed(abstracts)
         return dense_embeddings, sparse_embeddings
@@ -143,9 +148,14 @@ class MilvusSearchEngine(SearchEngine):
         Inserts a list of documents into the MilvusDB.
         :param documents: A list of Document objects to be inserted.
         """
-        dense_embeddings, sparse_embeddings = self.embed_documents(documents)
+        #only makes sense to embed if document abstracts are not empty 
+        documents = [doc for doc in documents if doc.chinese.abstract]
+        ids = [doc.id for doc in documents]
+        abstracts = [doc.chinese.abstract for doc in documents]
+        dense_embeddings = self.dense_embedder.embed(abstracts)
+        sparse_embeddings = self.sparse_embedder.embed(abstracts)
         self.operator.buffered_insert([
-            [doc.id for doc in documents],
+            ids,
             sparse_embeddings,
             dense_embeddings
         ])
@@ -226,42 +236,84 @@ class ElasticSearchEngine(SearchEngine):
         self.es = Elasticsearch([es_host], 
                                 basic_auth=("elastic", config["password"]),
                                 verify_certs=True,
-                                ca_certs=config["ca_certs"] 
-                            ) 
+                                ca_certs=config["ca_certs"])
         self.es_index = es_index
 
     def setup(self):
-        # Always drop and recreate the index to ensure it's clean
         if self.es.indices.exists(index=self.es_index):
             self.es.indices.delete(index=self.es_index)
-        self.es.indices.create(index=self.es_index)
+
+        mapping = {
+            "mappings": {
+                "properties": {
+                    "year": {"type": "integer"},
+                    "keywords": {"type": "keyword"},
+                    "english.authors": {"type": "keyword"},
+                    "chinese.authors": {"type": "keyword"},
+                    "english.advisors": {"type": "keyword"},
+                    "chinese.advisors": {"type": "keyword"}
+                }
+            }
+        }
+
+        self.es.indices.create(index=self.es_index, body=mapping)
 
     def insert(self, docs: List[Document]):
         for doc in docs:
-            self.es.index(index=self.es_index, id=doc.id, body=doc.dict())
+            self.es.index(index=self.es_index, id=doc.id, body=doc.model_dump())
 
     def search(self, query: str, filter: Filter, limit: int = 10000) -> List[str]:
-        must_filters = []
-        keyword_filters = []
+        must_clauses = []
+        filter_clauses = []
 
+        # Must match all keywords
         for kw in filter.keywords:
-            keyword_filters.append({"match_phrase": {"keywords": kw}})
+            must_clauses.append({"match_phrase": {"keywords": kw}})
+
+        # Must match each author (in either language)
+        for author in filter.authors:
+            must_clauses.append({
+                "bool": {
+                    "should": [
+                        {"term": {"english.authors": author}},
+                        {"term": {"chinese.authors": author}}
+                    ],
+                    "minimum_should_match": 1
+                }
+            })
+
+        # Must match each advisor (in either language)
+        for advisor in filter.advisors:
+            must_clauses.append({
+                "bool": {
+                    "should": [
+                        {"term": {"english.advisors": advisor}},
+                        {"term": {"chinese.advisors": advisor}}
+                    ],
+                    "minimum_should_match": 1
+                }
+            })
+
+        # Filter by IDs (exact match)
+        if filter.ids:
+            filter_clauses.append({"terms": {"_id": filter.ids}})
+
+        # Filter by years (exact match)
+        if filter.years:
+            filter_clauses.append({"terms": {"year": filter.years}})
 
         es_query = {
             "query": {
                 "bool": {
-                    "must": must_filters + keyword_filters,
-                    "filter": []
+                    "must": must_clauses,
+                    "filter": filter_clauses
                 }
             },
             "size": limit
         }
 
-        if filter.ids:
-            es_query["query"]["bool"]["filter"].append({"terms": {"_id": filter.ids}})
-
         response = self.es.search(index=self.es_index, body=es_query)
         return [hit["_id"] for hit in response["hits"]["hits"]]
-    
+
     def spec(self) -> SearchSpec:
         return SearchSpec(name="elastic_search_engine")

@@ -10,12 +10,12 @@ from src.utils.logging import setup_logger
 from scipy.sparse import csr_array
 from typing import List
 import sys
-from src.core.manager import Manager, MilvusElasticManager, MilvusManager
+from src.core.manager import Manager
 from tqdm import tqdm
 CHATBOT = "meta-llama/Llama-3.1-8B-Instruct"
 DENSE_EMBEDDER = "sentence-transformers/all-MiniLM-L6-v2"
 SPARSE_EMBEDDER = "BAAI/bge-m3"
-DATASET = "history"  # Default dataset to use
+DATASET = "ncl"  # Default dataset to use
 
 logger = setup_logger(
     name = 'search_app',
@@ -69,6 +69,7 @@ def main():
     dense_embedder: DenseEmbedder = AutoModelEmbedder(model_name=DENSE_EMBEDDER)
     engine = HybridSearchEngine(relational_search_engine=ElasticSearchEngine("https://localhost:9200", "documents"),
                                 vector_search_engine=MilvusSearchEngine(sparse_embedder, dense_embedder))
+    #engine = MilvusSearchEngine(sparse_embedder, dense_embedder)
     manager = Manager(library, [engine], router_name="simple")
     app = SearchApp(dataloader, manager)
     app.setup()
@@ -101,7 +102,7 @@ def main():
             continue
 
         # Run search
-        f = Filter(ids = None, keywords = [])
+        f = Filter()
         results = app.search(query=user_input, filter = f, limit=top_k)
         print("\n🔍 Search Results:")
         if not results:

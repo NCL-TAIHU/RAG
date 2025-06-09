@@ -1,6 +1,6 @@
-from src.core.entity import Document
+from src.core.entity import Document, Info
 import os
-from typing import Any, Iterator, List
+from typing import Any, Iterator, List, Dict
 import json
 import yaml
 config = yaml.safe_load(open("config/data.yml", "r"))
@@ -11,6 +11,14 @@ class DataLoader:
         Abstract method to load data.
         Should be implemented by subclasses.
         Iteratively returns batches of Documents.
+        """
+        raise NotImplementedError("Subclasses should implement this method.")
+    
+    def stream(self) -> Iterator[Document]:
+        """
+        Abstract method to stream data.
+        Should be implemented by subclasses.
+        Iteratively returns Documents one by one.
         """
         raise NotImplementedError("Subclasses should implement this method.")
     
@@ -25,6 +33,12 @@ class DataLoader:
                 abstract_path=os.path.join(base_path, "abstracts"),
                 content_path=os.path.join(base_path, "contents"),
                 keywords_path=os.path.join(base_path, "keywords"),
+                buffer_size=buffer_size
+            )
+        
+        elif dataset == "ncl": 
+            return JsonDataLoader(
+                base_path=config[dataset]['path'],
                 buffer_size=buffer_size
             )
         
@@ -50,7 +64,7 @@ class PathsDataLoader(DataLoader):
         self.buffer_size = buffer_size
         self.documents: List[Document] = []
 
-    def load(self):
+    def stream(self) -> Iterator[Document]: 
         document_paths = os.listdir(self.abstract_path)
         content_paths = os.listdir(self.content_path)
         keywords_paths = os.listdir(self.keywords_path)
@@ -69,7 +83,11 @@ class PathsDataLoader(DataLoader):
                 content = f2.read().strip()
                 keywords = f3.read().strip().split(',')
                 doc_id = os.path.splitext(filename)[0]
-                yield from self.handle(Document(id=doc_id, abstract=abstract, content=content, keywords=keywords))
+                yield Document(id=doc_id, abstract=abstract, content=content, keywords=keywords)
+
+    def load(self):
+        for doc in self.stream(): 
+            yield from self.handle(doc)
         yield from self.flush()
 
     def handle(self, document) -> Iterator[List[Document]]:
@@ -85,25 +103,49 @@ class PathsDataLoader(DataLoader):
             self.documents = []
 
 class JsonDataLoader(DataLoader):
-    def __init__(self, json_path: str, buffer_size: int = 64):
-        self.json_path = json_path
+    def __init__(self, base_path: str, buffer_size: int = 64):
+        self.base_path = base_path
+        self.json_paths = [os.path.join(base_path, f) for f in os.listdir(base_path) if f.endswith('.jsonl')]
         self.buffer_size = buffer_size
         self.documents: List[Document] = []
 
+    def stream(self) -> Iterator[Document]:
+        counter = 0
+        for path in self.json_paths: 
+            with open(path, 'r', encoding='utf-8') as f:
+                for line in f:
+                    if not line.strip():
+                        continue
+                    data: Dict = json.loads(line)
+                    data = data.get("root", data)  # handle optional "root" wrapper
+                    yield Document(
+                        id=str(counter),
+                        year=data.get("畢業學年度", None), 
+                        category=data.get("學位類別", None),
+                        chinese=Info(
+                            title=data.get("論文名稱", None),
+                            school=data.get("學校名稱", None),
+                            dept=data.get("系所名稱", None),
+                            abstract=data.get("摘要", None),
+                            authors=data.get("作者", "").splitlines(),
+                            advisors=data.get("指導教授", "").splitlines()
+                        ),
+                        english=Info(
+                            title=data.get("論文名稱(外文)", None),
+                            school=data.get("學校名稱(外文)", None), 
+                            dept=data.get("系所名稱(外文)", None), 
+                            abstract=data.get("摘要(外文)", None),  
+                            authors=data.get("作者(外文)", "").splitlines(),
+                            advisors=data.get("指導教授(外文)", "").splitlines()
+                        ), 
+                        link=data.get("博碩士論文網址", None), 
+                        keywords=[]
+                    )
+                    counter += 1
+
     def load(self) -> Iterator[List[Document]]:
-        with open(self.json_path, 'r', encoding='utf-8') as f:
-            for line in f:
-                if not line.strip():
-                    continue
-                data = json.loads(line)
-                data = data.get("root", data)  # handle optional "root" wrapper
-                doc = Document(
-                    id=data["id"],
-                    abstract=data.get("abstract", ""),
-                    content=data.get("title", ""),
-                    keywords=data.get("categories", "").split()
-                )
-                yield from self.handle(doc)
+        for doc in self.stream():
+            yield from self.handle(doc)
         yield from self.flush()
 
     def handle(self, document: Document) -> Iterator[List[Document]]:
@@ -117,27 +159,24 @@ class JsonDataLoader(DataLoader):
             self.documents = []
 
 
+
 class Sampler: 
-    def sample(self) -> List[Document]: 
+    def __init__(self, dataloader: DataLoader, max_samples: int = 1000):
+        """
+        Initializes the Sampler with a DataLoader.
+        """
+        self.dataloader = dataloader
+        self.max_samples = max_samples
+
+    def sample(self) -> Iterator[Document]: 
         """
         Samples a list of documents from a dataset
         """
         raise NotImplementedError("Subclasses should implement this method.")
     
-
-class DummySampler(Sampler):
-    def __init__(self, dataset: str):
-        """
-        Initializes the DummySampler with a dataset name.
-        """
-        self.dataset = dataset
-
-    def sample(self) -> List[Document]:
-        """
-        Returns a dummy list of documents.
-        """
-        return [
-            Document(id="1", abstract="Abstract 1", content="Content 1", keywords=["keyword1"]),
-            Document(id="2", abstract="Abstract 2", content="Content 2", keywords=["keyword2"]),
-            Document(id="3", abstract="Abstract 3", content="Content 3", keywords=["keyword3"]),
-        ]
+class PrefixSampler(Sampler):
+    def sample(self) -> Iterator[Document]: 
+        for i, doc in enumerate(self.dataloader.stream()):
+            if i >= self.max_samples:
+                break
+            yield doc
