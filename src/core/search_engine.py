@@ -66,8 +66,7 @@ class SearchEngine:
         Searches for documents based on a natural language query and optional metadata filters.
         :param query: The natural language query to search for.
         :param filter: Optional metadata filters to apply to the search.
-        :param
-        limit: The maximum number of documents to return.
+        :param limit: The maximum number of documents to return.
         :return: A list of document IDs that match the search criteria.
         """
         raise NotImplementedError("This method should be overridden by subclasses.")

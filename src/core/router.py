@@ -42,5 +42,4 @@ class SparsityRouter(Router):
         for field in filter.must_fields(): 
             if getattr(filter, field) is not None: 
                 return sparse_engines[0] if sparse_engines else dense_engines[0]
-            
         return dense_engines[0] if dense_engines else sparse_engines[0]

@@ -40,7 +40,6 @@ class CollectionConfig(BaseModel):
     indexes: list[IndexConfig] = []
     consistency_level: str = "Strong"  # Default consistency level
 
-
 @dataclass
 class CollectionBuilder:
     '''
@@ -55,7 +54,7 @@ class CollectionBuilder:
     @classmethod
     def from_config(cls, config: CollectionConfig):
         return cls(**config.__dict__)  
-    
+        
     def get_config(self) -> CollectionConfig:
         return CollectionConfig(**asdict(self))
     

@@ -109,4 +109,3 @@ class FilesLibrary(Library):
             except Exception as e:
                 logger.error(f"Error deleting file {file_path}: {e}")
         logger.info("File-based library cleared.")
-    
