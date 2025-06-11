@@ -13,6 +13,12 @@ import io
 logger = logging.getLogger(__name__)
 
 class DenseEmbedder:
+    def get_dim(self) -> int:
+        """
+        Returns the dimension of the embedding vectors.
+        :return: The dimension of the embedding vectors.
+        """
+        raise NotImplementedError("This method should be overridden by subclasses.")
     def embed(self, texts: List[str]) -> List[List[float]]:
         """
         Embeds a list of texts into a list of vectors.
@@ -52,6 +58,13 @@ class AutoModelEmbedder(DenseEmbedder):
         self.model.eval()
         self.batch_size = 32  # Default batch size for embedding
 
+    def get_dim(self) -> int:
+        """
+        Returns the dimension of the embedding vectors.
+        :return: The dimension of the embedding vectors.
+        """
+        return self.model.config.hidden_size
+    
     def embed(self, texts: List[str]) -> List[List[float]]:
         '''
         Embeds a list of texts into a list of vectors.

@@ -97,23 +97,13 @@ class CollectionOperator:
         for i in range(0, len(data[0]), self.buffer_size):
             batch_data = [field[i:i + self.buffer_size] for field in data]
             self.collection.insert(batch_data)
-
-    def _subset_expr(self, subset_ids: List[str]) -> str:
-            """
-            Constructs an expression for filtering results based on a list of IDs.
-            """
-            if not subset_ids:
-                return None
-            # Escape double quotes in IDs and format them
-            escaped_ids = [f'"{id_}"' for id_ in subset_ids]
-            return f"pk in [{', '.join(escaped_ids)}]"
     
     def search_dense(
             self, 
             query_vector: List[float], 
             limit: int = 10, 
-            subset_ids: Optional[List[str]] = None,
-            output_fields: List[str] = ["pk"]
+            output_fields: List[str] = ["pk"], 
+            expr: Optional[str] = None
         ):
         self.collection.load()
         search_params = {"metric_type": "IP", "params": {"nprobe": 10}}
@@ -122,7 +112,7 @@ class CollectionOperator:
             anns_field="dense_vector",
             param=search_params,
             limit=limit,
-            expr=self._subset_expr(subset_ids),  # Filter by subset if provided
+            expr=expr, 
             output_fields=output_fields
         )
         return results[0] if results else []
@@ -131,8 +121,8 @@ class CollectionOperator:
             self, 
             query_vector: csr_array, 
             limit: int = 10, 
-            subset_ids: Optional[List[str]] = None,
-            output_fields: List[str] = ["pk"]
+            output_fields: List[str] = ["pk"], 
+            expr: Optional[str] = None
         ):
         self.collection.load()
         search_params = {"metric_type": "IP", "params": {}}
@@ -141,7 +131,7 @@ class CollectionOperator:
             anns_field="sparse_vector",
             param=search_params,
             limit=limit,
-            expr=self._subset_expr(subset_ids),  # Filter by subset if provided
+            expr=expr, 
             output_fields=output_fields, 
         )
         return results[0] if results else []
@@ -152,8 +142,8 @@ class CollectionOperator:
         sparse_vector: csr_array,
         alpha: float = 0.5,
         limit: int = 10,
-        subset_ids: Optional[List[str]] = None,
-        output_fields: List[str] = ["pk"]
+        output_fields: List[str] = ["pk"], 
+        expr: Optional[str] = None,
     ) -> SearchResult:
         """
         Performs a hybrid search with dense and sparse vectors.
@@ -162,13 +152,13 @@ class CollectionOperator:
         self.collection.load()
         dense_search_params = {"metric_type": "IP", "params": {}}
         dense_req = AnnSearchRequest(
-            [dense_vector], "dense_vector", dense_search_params, limit=limit, expr=self._subset_expr(subset_ids)
+            [dense_vector], "dense_vector", dense_search_params, limit=limit, expr=expr
         )
         #print(f"dense vector size {len(dense_vector)}")
 
         sparse_search_params = {"metric_type": "IP", "params": {}}
         sparse_req = AnnSearchRequest(
-            [sparse_vector], "sparse_vector", sparse_search_params, limit=limit, expr=self._subset_expr(subset_ids)
+            [sparse_vector], "sparse_vector", sparse_search_params, limit=limit, expr=expr
         )
         #print(f"sparse vector size {sparse_vector.shape[1]}")
         search_params = {

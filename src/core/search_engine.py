@@ -93,7 +93,7 @@ class HybridSearchEngine(SearchEngine):
 
     def search(self, query: str, filter: Filter, limit: int = 10) -> List[str]:
         filtered_ids = self.relational_search_engine.search(query, filter)
-        subset_filter = Filter(ids=filtered_ids, keywords=filter.keywords)
+        subset_filter = filter.model_copy(update={"ids": filtered_ids})
         return self.vector_search_engine.search(query, subset_filter, limit=limit)
     
     def spec(self) -> SearchSpec:
@@ -101,40 +101,38 @@ class HybridSearchEngine(SearchEngine):
 
 class MilvusSearchEngine(SearchEngine): 
     def __init__(self, sparse_embedder: SparseEmbedder, dense_embedder: DenseEmbedder):
-        """
-        Initializes the MilvusDB with sparse and dense embedders.
-        :param sparse_embedder: An instance of SparseEmbedder for sparse vector embeddings.
-        :param dense_embedder: An instance of DenseEmbedder for dense vector embeddings.
-        """
         self.sparse_embedder = sparse_embedder
         self.dense_embedder = dense_embedder
         self.config = CollectionConfig(
             collection_name="example_collection",
             fields=[
                 FieldConfig(name="pk", dtype=DataType.VARCHAR, is_primary=True, max_length=100),
+                FieldConfig(name="year", dtype=DataType.INT64),
+                FieldConfig(name="category", dtype=DataType.VARCHAR, max_length=100),
+                FieldConfig(name="school_chinese", dtype=DataType.VARCHAR, max_length=100),
+                FieldConfig(name="school_english", dtype=DataType.VARCHAR, max_length=100),
+                FieldConfig(name="dept_chinese", dtype=DataType.VARCHAR, max_length=100),
+                FieldConfig(name="dept_english", dtype=DataType.VARCHAR, max_length=100),
                 FieldConfig(name="sparse_vector", dtype=DataType.SPARSE_FLOAT_VECTOR),
-                FieldConfig(name="dense_vector", dtype=DataType.FLOAT_VECTOR, dim=384), # 384 need to be parametrized based on the embedder
+                FieldConfig(name="dense_vector", dtype=DataType.FLOAT_VECTOR, dim=self.dense_embedder.get_dim()),
             ],
             indexes=[
                 IndexConfig(
-                field_name="sparse_vector",
-                index_params={"index_type": "SPARSE_INVERTED_INDEX", "metric_type": "IP"}
+                    field_name="sparse_vector",
+                    index_params={"index_type": "SPARSE_INVERTED_INDEX", "metric_type": "IP"}
                 ),
                 IndexConfig(
                     field_name="dense_vector",
                     index_params={
-                        "index_type": "IVF_FLAT",     # predictable ANN behavior
+                        "index_type": "IVF_FLAT",
                         "metric_type": "IP",
-                        "params": {"nlist": 128}     # number of clusters
+                        "params": {"nlist": 128}
                     }
                 )
             ]
         )
 
     def setup(self): 
-        """
-        Sets up the MilvusDB by building the collection.
-        """
         builder = CollectionBuilder.from_config(self.config)
         builder.connect()
         self.collection = builder.build()
@@ -144,43 +142,69 @@ class MilvusSearchEngine(SearchEngine):
         dense_vector = self.dense_embedder.embed([query])[0]
         sparse_vector = self.sparse_embedder.embed([query])
         assert sparse_vector.shape[0] == 1, "Expected a single-row sparse vector"
-        sparse_vector = sparse_vector._getrow(0)
-        return dense_vector, sparse_vector
-    
+        return dense_vector, sparse_vector._getrow(0)
+
     def insert(self, documents: List[Document]):
-        """
-        Inserts a list of documents into the MilvusDB.
-        :param documents: A list of Document objects to be inserted.
-        """
-        #only makes sense to embed if document abstracts are not empty 
         documents = [doc for doc in documents if doc.chinese.abstract]
         ids = [doc.id for doc in documents]
         abstracts = [doc.chinese.abstract for doc in documents]
         dense_embeddings = self.dense_embedder.embed(abstracts)
         sparse_embeddings = self.sparse_embedder.embed(abstracts)
+
+        years = [doc.year or -1 for doc in documents]
+        categories = [doc.category or "" for doc in documents]
+        school_chinese = [doc.chinese.school or "" for doc in documents]
+        school_english = [doc.english.school or "" for doc in documents]
+        dept_chinese = [doc.chinese.dept or "" for doc in documents]
+        dept_english = [doc.english.dept or "" for doc in documents]
+
         self.operator.buffered_insert([
-            ids,
-            sparse_embeddings,
-            dense_embeddings
+            ids, years, categories,
+            school_chinese, school_english,
+            dept_chinese, dept_english,
+            sparse_embeddings, dense_embeddings
         ])
 
+    def get_query(self, filter: Filter) -> Optional[str]: 
+        expr_clauses = []
+
+        if filter.ids:
+            expr_clauses.append(f'pk in ["{"\",\"".join(filter.ids)}"]')
+        if filter.years:
+            expr_clauses.append(f'year in [{",".join(map(str, filter.years))}]')
+        if filter.categories:
+            expr_clauses.append(f'category in ["{"\",\"".join(filter.categories)}"]')
+        if filter.schools:
+            school_clause = (
+                f'school_chinese in ["{"\",\"".join(filter.schools)}"] '
+                f'or school_english in ["{"\",\"".join(filter.schools)}"]'
+            )
+            expr_clauses.append(f'({school_clause})')
+        if filter.depts:
+            dept_clause = (
+                f'dept_chinese in ["{"\",\"".join(filter.depts)}"] '
+                f'or dept_english in ["{"\",\"".join(filter.depts)}"]'
+            )
+            expr_clauses.append(f'({dept_clause})')
+
+        return " and ".join(expr_clauses) if expr_clauses else None
+
     def search(self, query: str, filter: Filter, limit: int = 10) -> List[str]:
-        '''
-        ignore the filter for now, just return the top k results based on the query
-        '''
         dense_vector, sparse_vector = self.embed_query(query)
         results = self.operator.search_hybrid(
             dense_vector, 
             sparse_vector, 
             alpha=0.5, 
             limit=limit, 
-            subset_ids=filter.ids
+            output_fields=["pk"],
+            expr=self.get_query(filter)
         )
         hits: Hits = results[0]
         return [hit.fields.get("pk", "") for hit in hits]
-    
+
     def spec(self) -> SearchSpec:
         return SearchSpec(name="milvus_search_engine", optimal_for="weak")
+
 
 class SQLiteSearchEngine(SearchEngine):
     def __init__(self, db_path: str):
@@ -251,11 +275,16 @@ class ElasticSearchEngine(SearchEngine):
             "mappings": {
                 "properties": {
                     "year": {"type": "integer"},
+                    "category": {"type": "keyword"},
                     "keywords": {"type": "keyword"},
                     "english.authors": {"type": "keyword"},
                     "chinese.authors": {"type": "keyword"},
                     "english.advisors": {"type": "keyword"},
-                    "chinese.advisors": {"type": "keyword"}
+                    "chinese.advisors": {"type": "keyword"}, 
+                    "english.school": {"type": "keyword"},
+                    "chinese.school": {"type": "keyword"},
+                    "english.dept": {"type": "keyword"},
+                    "chinese.dept": {"type": "keyword"}
                 }
             }
         }
@@ -266,7 +295,7 @@ class ElasticSearchEngine(SearchEngine):
         for doc in docs:
             self.es.index(index=self.es_index, id=doc.id, body=doc.model_dump())
 
-    def search(self, query: str, filter: Filter, limit: int = 10000) -> List[str]:
+    def get_query(self, filter: Filter) -> Dict: 
         must_clauses = []
         filter_clauses = []
 
@@ -274,6 +303,7 @@ class ElasticSearchEngine(SearchEngine):
         for kw in filter.keywords:
             must_clauses.append({"match_phrase": {"keywords": kw}})
 
+        
         # Must match each author (in either language)
         for author in filter.authors:
             must_clauses.append({
@@ -306,16 +336,48 @@ class ElasticSearchEngine(SearchEngine):
         if filter.years:
             filter_clauses.append({"terms": {"year": filter.years}})
 
+        # Filter by categories
+        if filter.categories:
+            filter_clauses.append({"terms": {"category": filter.categories}})
+
+        # Filter by schools
+        if filter.schools:
+            filter_clauses.append({
+                "bool": {
+                    "should": [
+                        {"terms": {"english.school": filter.schools}},
+                        {"terms": {"chinese.school": filter.schools}}
+                    ],
+                    "minimum_should_match": 1
+                }
+            })
+
+        # Filter by departments
+        if filter.depts:
+            filter_clauses.append({
+                "bool": {
+                    "should": [
+                        {"terms": {"english.dept": filter.depts}},
+                        {"terms": {"chinese.dept": filter.depts}}
+                    ],
+                    "minimum_should_match": 1
+                }
+            })
+
         es_query = {
             "query": {
                 "bool": {
                     "must": must_clauses,
                     "filter": filter_clauses
                 }
-            },
-            "size": limit
+            }
         }
 
+        return es_query
+    
+    def search(self, query: str, filter: Filter, limit: int = 10000) -> List[str]:
+        es_query = self.get_query(filter, limit)
+        #count = self.es.count(index=self.es_index, body=es_query)
         response = self.es.search(index=self.es_index, body=es_query)
         return [hit["_id"] for hit in response["hits"]["hits"]]
 

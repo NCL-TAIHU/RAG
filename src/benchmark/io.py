@@ -16,7 +16,7 @@ def save_benchmarks(benchmarks: List[Benchmark], file_path: str):
     '''
     with open(file_path, 'w', encoding='utf-8') as f:
         for b in benchmarks:
-            json.dump(b.model_dump(), f)
+            json.dump(b.model_dump(), f, ensure_ascii=False)
             f.write('\n')
 
 

@@ -1,5 +1,5 @@
 from src.core.collection import CollectionBuilder, CollectionConfig, FieldConfig, IndexConfig, CollectionOperator
-from src.core.llm import LLMBuilder, generate
+from src.core.llm import Agent
 from src.core.embedder import DenseEmbedder, SparseEmbedder, AutoModelEmbedder, BGEM3Embedder, MilvusBGEM3Embedder
 from src.core.data import DataLoader
 from src.core.prompt import PromptBuilder
@@ -33,16 +33,23 @@ class SearchApp:
     the database schema is defined statically, as it does not change per instance, but if there's another app, 
     it may have a different schema or embedding strategy.
     '''
-    def __init__(self, dataloader: DataLoader, manager: Manager):
+    def __init__(self, dataloader: DataLoader, manager: Manager, max_files: int = 1000):
         """Initialize the SearchApp."""
         self.data_loader: DataLoader = dataloader 
         self.manager: Manager = manager
+        self.max_files: int = max_files
 
     def setup(self):
         self.manager.setup()
+        count = 0
         for documents in tqdm(self.data_loader.load(), desc="Embedding batches"):
             self.manager.insert(documents)
-        self.llm = LLMBuilder.from_default(CHATBOT).build()    
+            count += len(documents)
+            if count >= self.max_files:
+                logger.info(f"Inserted {count} documents, stopping further insertion.")
+                break
+        logger.info(f"Total documents inserted: {count}")
+        self.llm: Agent = Agent.from_vllm(CHATBOT)
     
     def search(
             self, 
@@ -54,7 +61,7 @@ class SearchApp:
     
     def rag(self, query: str, results: List[Document]) -> dict:
         prompt = PromptBuilder().add_user_message(query).add_documents(results).build_prompt()
-        generation = generate(self.llm, prompt)
+        generation = self.llm.generate(prompt)
         return {
             "results": results,
             "prompt": prompt,
@@ -111,7 +118,7 @@ def main():
 
         for i, doc in enumerate(results, 1):
             print(f"[{i}] {doc.id}")
-            print(f"     Abstract: {doc.abstract[:200]}...\n")
+            print(f"     Abstract: {doc.chinese.abstract[:200]}...\n")
 
         if rag_enabled:
             response = app.rag(user_input, results)
