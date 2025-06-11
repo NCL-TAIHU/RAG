@@ -37,7 +37,7 @@ class Agent:
         raise NotImplementedError("Subclasses should implement this method.")
     
     @classmethod
-    def from_vllm(model_name: str) -> "Agent":
+    def from_vllm(cls, model_name: str) -> "Agent":
         """
         Creates an Agent instance from a VLLM configuration.
         """
@@ -56,7 +56,7 @@ class Agent:
 class OpenAIAgent(Agent): 
     pass 
     #TODO 
-    
+
 class VLLMAgent(Agent):
     """
     An agent that uses VLLM to generate responses.
