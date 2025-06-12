@@ -19,15 +19,38 @@ class LLMConfig(BaseModel):
         """
         Creates a default LLMConfig instance with the specified model name.
         """
-        return cls(
-            model=model_name,
-            trust_remote_code=True,
-            download_dir="/tmp/model_cache",
-            tensor_parallel_size=1,
-            gpu_memory_utilization=0.8,  # Limit GPU memory utilization
-            max_model_len=8192,          # Limit context length
-            quantization="fp8"
-        )
+        if model_name == 'meta-llama/Llama-3.1-8B-Instruct': 
+            return cls(
+                model=model_name,
+                trust_remote_code=True,
+                download_dir="/tmp/model_cache",
+                tensor_parallel_size=1,
+                gpu_memory_utilization=0.8,  # Limit GPU memory utilization
+                max_model_len=8192,          # Limit context length
+                quantization="fp8"
+            )
+        elif model_name == 'taide/TAIDE-LX-7B':
+            return cls(
+                model=model_name,
+                trust_remote_code=True,
+                download_dir="/tmp/model_cache",
+                tensor_parallel_size=1,
+                gpu_memory_utilization=0.8,  # Limit GPU memory utilization
+                max_model_len=4096,          # Limit context length
+                quantization="fp8"
+            )
+        elif model_name == 'taide/Llama-3.1-TAIDE-LX-8B-Chat':
+            return cls(
+                model=model_name,
+                trust_remote_code=True,
+                download_dir="/tmp/model_cache",
+                tensor_parallel_size=1,
+                gpu_memory_utilization=0.8,  # Limit GPU memory utilization
+                max_model_len=8192,          # Limit context length
+                quantization="fp8"
+            )
+        else:
+            raise ValueError(f"Unsupported model name: {model_name}. Please provide a valid model name.")
 
 class Agent: 
     def generate(self, prompt: str) -> str:

@@ -7,7 +7,7 @@ from src.benchmark.entity import Benchmark
 from src.benchmark.io import save_benchmarks, load_benchmarks
 from tqdm import tqdm
 
-CHATBOT = "meta-llama/Llama-3.1-8B-Instruct"
+CHATBOT = "taide/Llama-3.1-TAIDE-LX-8B-Chat" #"taide/TAIDE-LX-7B" #"meta-llama/Llama-3.1-8B-Instruct" #
 DATASET = "ncl"  # Default dataset to use``
 
 def generate_benchmarks(documents: List[Document], prompt: str, llm: Agent) -> List[Benchmark]:
