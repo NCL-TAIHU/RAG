@@ -3,7 +3,7 @@ from src.core.llm import Agent
 from src.core.embedder import DenseEmbedder, SparseEmbedder, AutoModelEmbedder, BGEM3Embedder, MilvusBGEM3Embedder
 from src.core.data import DataLoader
 from src.core.prompt import PromptBuilder
-from src.core.entity import Document
+from src.core.entity import Document, NCLDocument, NCLFilter
 from src.core.search_engine import SearchEngine, Filter, HybridSearchEngine, MilvusSearchEngine, ElasticSearchEngine
 from src.core.library import Library, InMemoryLibrary, FilesLibrary
 from src.utils.logging import setup_logger
@@ -16,6 +16,8 @@ CHATBOT = "meta-llama/Llama-3.1-8B-Instruct"
 DENSE_EMBEDDER = "sentence-transformers/all-MiniLM-L6-v2"
 SPARSE_EMBEDDER = "BAAI/bge-m3"
 DATASET = "ncl"  # Default dataset to use
+DOC_CLS = NCLDocument  # Default document class
+FILT_CLS = NCLFilter  # Default filter class
 
 logger = setup_logger(
     name = 'search_app',
@@ -74,9 +76,11 @@ def main():
     library: Library = InMemoryLibrary()
     sparse_embedder: SparseEmbedder = BGEM3Embedder(model_name=SPARSE_EMBEDDER)
     dense_embedder: DenseEmbedder = AutoModelEmbedder(model_name=DENSE_EMBEDDER)
-    engine1 = HybridSearchEngine(relational_search_engine=ElasticSearchEngine("https://localhost:9200", "documents"),
-                                vector_search_engine=MilvusSearchEngine(sparse_embedder, dense_embedder))
-    engine2 = MilvusSearchEngine(sparse_embedder, dense_embedder)
+    engine1 = HybridSearchEngine(
+        relational_search_engine=ElasticSearchEngine("https://localhost:9200", "documents", document_cls=DOC_CLS, filter_cls=FILT_CLS),
+        vector_search_engine=MilvusSearchEngine(sparse_embedder, dense_embedder, document_cls=DOC_CLS, filter_cls=FILT_CLS)
+    )
+    engine2 = MilvusSearchEngine(sparse_embedder, dense_embedder, document_cls=DOC_CLS, filter_cls=FILT_CLS)
     manager = Manager(library, [engine1, engine2], router_name="sparsity")
     app = SearchApp(dataloader, manager)
     app.setup()
@@ -117,8 +121,8 @@ def main():
             continue
 
         for i, doc in enumerate(results, 1):
-            print(f"[{i}] {doc.id}")
-            print(f"     Abstract: {doc.chinese.abstract[:200]}...\n")
+            print(f"[{i}] {doc.key()}")
+            print(f"     Abstract: {doc.content()[0]}...\n")
 
         if rag_enabled:
             response = app.rag(user_input, results)

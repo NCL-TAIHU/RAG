@@ -1,4 +1,4 @@
-from src.core.entity import Document, Info
+from src.core.entity import Document, NCLDocument, Info
 import os
 from typing import Any, Iterator, List, Dict
 import json
@@ -37,12 +37,13 @@ class DataLoader:
             )
         
         elif dataset == "ncl": 
-            return JsonDataLoader(
+            return NCLDataLoader(
                 base_path=config[dataset]['path'],
                 buffer_size=buffer_size
             )
         
         elif dataset == "arxiv":
+            raise NotImplementedError("Arxiv dataset loader is not implemented yet.")
             return JsonDataLoader(
                 json_path=config[dataset]['path'],
                 buffer_size=buffer_size
@@ -102,7 +103,7 @@ class PathsDataLoader(DataLoader):
             yield self.documents
             self.documents = []
 
-class JsonDataLoader(DataLoader):
+class NCLDataLoader(DataLoader):
     def __init__(self, base_path: str, buffer_size: int = 64):
         self.base_path = base_path
         self.json_paths = [os.path.join(base_path, f) for f in os.listdir(base_path) if f.endswith('.jsonl')]
@@ -118,7 +119,7 @@ class JsonDataLoader(DataLoader):
                         continue
                     data: Dict = json.loads(line)
                     data = data.get("root", data)  # handle optional "root" wrapper
-                    yield Document(
+                    yield NCLDocument(
                         id=str(counter),
                         year=data.get("畢業學年度", None), 
                         category=data.get("學位類別", None),

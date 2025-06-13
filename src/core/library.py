@@ -40,24 +40,9 @@ class InMemoryLibrary(Library):
         self.documents: Dict[str, Document] = {}
         self.file_path = file_path
 
-    def save(self): 
-        with open(self.file_path, 'w') as f:
-            json.dump([doc.model_dump() for doc in self.documents.values()], f)
-
-    def load(self) -> None:
-        try:
-            with open(self.file_path, 'r') as f:
-                data = json.load(f)
-                for doc_data in data:
-                    doc = Document(**doc_data)
-                    self.documents[doc.id] = doc
-        except FileNotFoundError:
-            logger.warning(f"File {self.file_path} not found. Starting with an empty library.")
-            pass
-
     def insert(self, docs: List[Document]) -> None:
         for doc in docs:
-            self.documents[doc.id] = doc
+            self.documents[doc.id()] = doc
 
     def retrieve(self, ids: List[str]) -> List[Document]:
         return [self.documents[id_] for id_ in ids if id_ in self.documents]
