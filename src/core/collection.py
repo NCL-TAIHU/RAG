@@ -39,6 +39,23 @@ class CollectionConfig(BaseModel):
     fields: list[FieldConfig] = []
     indexes: list[IndexConfig] = []
     consistency_level: str = "Strong"  # Default consistency level
+    def get_field(self, name: str) -> FieldConfig:
+        for field in self.fields:
+            if field.name == name:
+                return field
+        raise KeyError(f"Field '{name}' not found in collection schema.")
+
+    def has_field(self, name: str) -> bool:
+        return any(field.name == name for field in self.fields)
+
+    def field_names(self) -> List[str]:
+        return [field.name for field in self.fields]
+
+    def primary_field(self) -> FieldConfig:
+        for field in self.fields:
+            if field.is_primary:
+                return field
+        raise ValueError("No primary key field defined in collection config.")
 
 @dataclass
 class CollectionBuilder:

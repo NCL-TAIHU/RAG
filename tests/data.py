@@ -1,6 +1,6 @@
 import unittest
 from src.core.data import DataLoader
-from src.core.entity import Document
+from src.core.document import Document
 
 class TestDataLoaders(unittest.TestCase):
     def test_arxiv_dataloader(self):

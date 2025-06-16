@@ -1,5 +1,5 @@
 from typing import List
-from src.core.entity import Document
+from src.core.document import Document
 
 class PromptBuilder():
     def __init__(self, system_prompt: str = None):
@@ -37,7 +37,7 @@ class PromptBuilder():
         """添加文檔到提示中"""
         if not documents:
             return self
-        results = "\n".join([f"{doc.abstract}" for doc in documents])
+        results = "\n".join([f"{doc.content()}" for doc in documents])
         self.add_retrieval_results(results)
         return self
     

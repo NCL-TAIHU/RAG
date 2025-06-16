@@ -1,5 +1,5 @@
 from src.core.search_engine import Filter
-from src.core.entity import Document
+from src.core.document import Document
 from typing import List
 from src.core.library import Library
 from src.core.search_engine import Filter, SearchEngine
