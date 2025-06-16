@@ -1,4 +1,4 @@
-from src.core.entity import Document
+from src.core.document import Document
 from typing import List, Dict, Any
 import json
 import logging
@@ -42,7 +42,7 @@ class InMemoryLibrary(Library):
 
     def insert(self, docs: List[Document]) -> None:
         for doc in docs:
-            self.documents[doc.id()] = doc
+            self.documents[doc.key()] = doc
 
     def retrieve(self, ids: List[str]) -> List[Document]:
         return [self.documents[id_] for id_ in ids if id_ in self.documents]

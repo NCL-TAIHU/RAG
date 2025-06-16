@@ -1,7 +1,6 @@
 from typing import List, Optional, Dict, Type
-from src.core.entity import Document, FieldType
+from src.core.document import Document, FieldType
 from src.core.embedder import SparseEmbedder, DenseEmbedder
-from src.core.entity import Document
 from src.core.collection import FieldConfig, IndexConfig, CollectionConfig, CollectionOperator, CollectionBuilder
 from typing import List
 from pymilvus import (
@@ -29,10 +28,10 @@ class Filter(BaseModel):
     authors: List[str] = []  # filtered results need to contain these authors
     advisors: List[str] = []  # filtered results need to contain these advisors
 
-    def must_fields(self): 
+    def must_fields(self) -> List[str]: 
         return ['keywords', 'authors', 'advisors']
     
-    def filter_fields(self):
+    def filter_fields(self) -> List[str]:
         return ['ids', 'years', 'categories', 'schools', 'depts']
 
 class SearchSpec(BaseModel):
@@ -121,11 +120,13 @@ class MilvusSearchEngine(SearchEngine):
         fields = [
             FieldConfig(name="pk", dtype=DataType.VARCHAR, is_primary=True, max_length=100)
         ]
-        for f in self.document_cls.metadata_schema():
+        metadata_schema = self.document_cls.metadata_schema()
+        for field_name in self.filter_cls.filter_fields():
+            f = metadata_schema[field_name]
             fields.append(FieldConfig(
                 name=f.name,
                 dtype=f.type.to_milvus_type(),
-                max_length=f.max_len if f.type == FieldType.STRING else None
+                max_length=f.max_len
             ))
         fields += [
             FieldConfig(name="sparse_vector", dtype=DataType.SPARSE_FLOAT_VECTOR),
@@ -164,25 +165,22 @@ class MilvusSearchEngine(SearchEngine):
         return dense, sparse._getrow(0)
 
     def insert(self, documents: List[Document]):
-        dense_texts = [f.contents[0] for doc in documents for f in doc.content() if f.name.startswith("abstract") and f.contents]
-        dense_embeddings = self.dense_embedder.embed(dense_texts)
-        sparse_embeddings = self.sparse_embedder.embed(dense_texts)
+        contents = [doc.content() for doc in documents]
+        channel_contents = [next(iter(content.values())).contents for content in contents] #TODO: handle multiple content fields, default to first one
+        filtered_texts = [c[0] if c else "" for c in channel_contents]  # Fallback to empty string if no content
+        dense_embeddings = self.dense_embedder.embed(filtered_texts)
+        sparse_embeddings = self.sparse_embedder.embed(filtered_texts)
 
         insert_dict = {
             "pk": [doc.key() for doc in documents],
             "sparse_vector": sparse_embeddings,
             "dense_vector": dense_embeddings,
         }
-        for f in self.document_cls.metadata_schema():
-            insert_dict[f.name] = [self._get_first_field_value(doc, f.name) for doc in documents]
+        metadatas = [doc.metadata() for doc in documents]
+        for f_name in self.filter_cls.filter_fields():
+            insert_dict[f_name] = [metadatas[i][f_name].contents[0] for i in range(len(documents))]
 
         self.operator.buffered_insert([insert_dict[k] for k in self.config.field_names()])
-
-    def _get_first_field_value(self, doc: Document, name: str):
-        for field in doc.metadata():
-            if field.name == name:
-                return field.contents[0] if field.contents else None
-        return None
 
     def get_query(self, filter: Filter) -> str:
         clauses = []
@@ -295,11 +293,12 @@ class ElasticSearchEngine(SearchEngine):
         if self.es.indices.exists(index=self.es_index):
             self.es.indices.delete(index=self.es_index)
 
+        data = self.document_cls.metadata_schema()
         mapping = {
             "mappings": {
                 "properties": {
-                    f.name: {"type": "keyword" if f.type.value == "str" else "integer"}
-                    for f in self.document_cls.metadata_schema()
+                    data[f].name: {"type": "keyword" if data[f].type.value == "str" else "integer"}
+                    for f in self.filter_cls.filter_fields() + self.filter_cls.must_fields()
                 }
             }
         }
@@ -307,9 +306,10 @@ class ElasticSearchEngine(SearchEngine):
 
     def insert(self, docs: List[Document]):
         for doc in docs:
+            data = doc.metadata()
             body = {
-                f.name: f.contents
-                for f in doc.metadata() 
+                data[f].name: data[f].contents
+                for f in self.filter_cls.filter_fields() + self.filter_cls.must_fields()
             }
             self.es.index(index=self.es_index, id=doc.key(), body=body)
 

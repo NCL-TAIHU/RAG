@@ -1,4 +1,4 @@
-from src.core.entity import Document, NCLDocument, Info
+from src.core.document import Document, NCLDocument, Info
 import os
 from typing import Any, Iterator, List, Dict
 import json

@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from typing import List
 from src.core.llm import Agent
-from src.core.entity import Document
+from src.core.document import Document
 from src.core.data import Sampler, PrefixSampler, DataLoader
 from src.benchmark.entity import Benchmark
 from src.benchmark.io import save_benchmarks, load_benchmarks

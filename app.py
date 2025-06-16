@@ -3,7 +3,8 @@ from src.core.llm import Agent
 from src.core.embedder import DenseEmbedder, SparseEmbedder, AutoModelEmbedder, BGEM3Embedder, MilvusBGEM3Embedder
 from src.core.data import DataLoader
 from src.core.prompt import PromptBuilder
-from src.core.entity import Document, NCLDocument, NCLFilter
+from src.core.document import Document, NCLDocument
+from src.core.filter import Filter, NCLFilter
 from src.core.search_engine import SearchEngine, Filter, HybridSearchEngine, MilvusSearchEngine, ElasticSearchEngine
 from src.core.library import Library, InMemoryLibrary, FilesLibrary
 from src.utils.logging import setup_logger
@@ -77,7 +78,7 @@ def main():
     sparse_embedder: SparseEmbedder = BGEM3Embedder(model_name=SPARSE_EMBEDDER)
     dense_embedder: DenseEmbedder = AutoModelEmbedder(model_name=DENSE_EMBEDDER)
     engine1 = HybridSearchEngine(
-        relational_search_engine=ElasticSearchEngine("https://localhost:9200", "documents", document_cls=DOC_CLS, filter_cls=FILT_CLS),
+        relational_search_engine=ElasticSearchEngine("https://localhost:9200", document_cls=DOC_CLS, filter_cls=FILT_CLS, es_index= "documents"),
         vector_search_engine=MilvusSearchEngine(sparse_embedder, dense_embedder, document_cls=DOC_CLS, filter_cls=FILT_CLS)
     )
     engine2 = MilvusSearchEngine(sparse_embedder, dense_embedder, document_cls=DOC_CLS, filter_cls=FILT_CLS)
