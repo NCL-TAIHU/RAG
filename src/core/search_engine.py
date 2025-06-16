@@ -1,5 +1,6 @@
 from typing import List, Optional, Dict, Type
 from src.core.document import Document, FieldType
+from src.core.filter import Filter
 from src.core.embedder import SparseEmbedder, DenseEmbedder
 from src.core.collection import FieldConfig, IndexConfig, CollectionConfig, CollectionOperator, CollectionBuilder
 from typing import List
@@ -11,28 +12,9 @@ from pymilvus.client.abstract import Hits, Hit
 from elasticsearch import Elasticsearch
 from pydantic import BaseModel
 import yaml
+import logging
 
-class Filter(BaseModel):
-    """
-    Class to handle filtering of documents based on metadata.
-    """
-    #filter clauses, filtered results need to match at least one of these clauses
-    ids: Optional[List[str]] = None  
-    years: Optional[List[int]] = None  
-    categories: Optional[List[str]] = None  
-    schools: Optional[List[str]] = None  
-    depts: Optional[List[str]] = None  
-    
-    #must clauses
-    keywords: List[str] = [] #filtered results need to contain all keywords
-    authors: List[str] = []  # filtered results need to contain these authors
-    advisors: List[str] = []  # filtered results need to contain these advisors
-
-    def must_fields(self) -> List[str]: 
-        return ['keywords', 'authors', 'advisors']
-    
-    def filter_fields(self) -> List[str]:
-        return ['ids', 'years', 'categories', 'schools', 'depts']
+logger = logging.getLogger(__name__)
 
 class SearchSpec(BaseModel):
     '''
@@ -182,31 +164,37 @@ class MilvusSearchEngine(SearchEngine):
 
         self.operator.buffered_insert([insert_dict[k] for k in self.config.field_names()])
 
-    def get_query(self, filter: Filter) -> str:
+    def get_query(self, filter: Filter) -> Optional[str]:
         clauses = []
-        # Filter fields: field value is one of the filter options
+        schema_map = filter._doc_cls_.metadata_schema()
+        logger.debug("milvus does not support must fields, only filter fields")
         for field in self.filter_cls.filter_fields():
             values = getattr(filter, field, None)
             if values:
-                clauses.append(f'{field} in ["' + '","'.join(map(str, values)) + '"]')
+                field_type = schema_map[field].type
 
-        # Must fields: treated the same way due to Milvus limitations
-        for field in self.filter_cls.must_fields():
-            values = getattr(filter, field, None)
-            if values:
-                clauses.append(f'{field} in ["' + '","'.join(map(str, values)) + '"]')
+                # Quote strings and booleans; leave ints/floats unquoted
+                if field_type in {FieldType.STRING, FieldType.BOOLEAN}:
+                    formatted = ",".join(f'"{v}"' for v in values)
+                else:
+                    formatted = ",".join(f"{v}" for v in values)
+
+                clauses.append(f"{field} in [{formatted}]")
 
         return " and ".join(clauses) if clauses else None
 
+
     def search(self, query: str, filter: Filter, limit: int = 10) -> List[str]:
         dense_vector, sparse_vector = self.embed_query(query)
+        expr = self.get_query(filter)
+        print(f"Search expression: {expr}")  # Debugging line
         results = self.operator.search_hybrid(
             dense_vector=dense_vector,
             sparse_vector=sparse_vector,
             alpha=0.5,
             limit=limit,
             output_fields=["pk"],
-            expr=self.get_query(filter)
+            expr=expr
         )
         return [hit.fields.get("pk", "") for hit in results[0]]
 

@@ -16,6 +16,18 @@ class Filter(BaseModel):
     # The document class to validate against
     _doc_cls_: ClassVar[Optional[Type["Document"]]] = None
 
+    def set_fields(self, **kwargs):
+        """
+        Set fields dynamically based on the provided keyword arguments.
+        This allows for flexible filter creation.
+        """
+        for field in kwargs:
+            if field not in self.filter_fields() and field not in self.must_fields():
+                raise ValueError(f"Invalid field: {field}. Must be one of {self.filter_fields() + self.must_fields()}")
+            setattr(self, field, kwargs[field])
+
+        return self
+
     @classmethod
     def must_fields(cls) -> List[str]:
         raise NotImplementedError("Subclasses must define their own must_fields.")
@@ -24,12 +36,14 @@ class Filter(BaseModel):
     def filter_fields(cls) -> List[str]:
         raise NotImplementedError("Subclasses must define their own filter_fields.")
     
-    def validate_fields(self, doc_cls: Type["Document"]) -> None:
-        schema_fields = {f for f in doc_cls.metadata_schema()}
-        declared_fields = set(self.filter_fields()) | set(self.must_fields())
+    @classmethod
+    def validate_fields(cls, doc_cls: Type["Document"]) -> None:
+        schema_fields = {f.name for f in doc_cls.metadata_schema().values()}
+        declared_fields = set(cls.filter_fields()) | set(cls.must_fields())
         unknown = declared_fields - schema_fields
         if unknown:
-            raise ValueError(f"{self.__name__} declares invalid fields: {unknown}")
+            raise ValueError(f"{cls.__name__} declares invalid fields: {unknown}")
+
 
     @classmethod
     def from_document_type(cls, doc_cls: Type["Document"]) -> Type["Filter"]:

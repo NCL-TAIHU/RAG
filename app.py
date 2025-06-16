@@ -71,21 +71,7 @@ class SearchApp:
             "generation": generation
         }
     
-def main():
-    print("🔎 Initializing SearchApp...")
-    dataloader = DataLoader.from_default(DATASET)
-    library: Library = InMemoryLibrary()
-    sparse_embedder: SparseEmbedder = BGEM3Embedder(model_name=SPARSE_EMBEDDER)
-    dense_embedder: DenseEmbedder = AutoModelEmbedder(model_name=DENSE_EMBEDDER)
-    engine1 = HybridSearchEngine(
-        relational_search_engine=ElasticSearchEngine("https://localhost:9200", document_cls=DOC_CLS, filter_cls=FILT_CLS, es_index= "documents"),
-        vector_search_engine=MilvusSearchEngine(sparse_embedder, dense_embedder, document_cls=DOC_CLS, filter_cls=FILT_CLS)
-    )
-    engine2 = MilvusSearchEngine(sparse_embedder, dense_embedder, document_cls=DOC_CLS, filter_cls=FILT_CLS)
-    manager = Manager(library, [engine1, engine2], router_name="sparsity")
-    app = SearchApp(dataloader, manager)
-    app.setup()
-
+def interact(app: SearchApp): 
     print("\n📚 Welcome to the Interactive Search App!")
     print("Type your query and press Enter to search.")
     print("Type `:rag` to toggle RAG mode, `:topk <num>` to change result count, or `:exit` to quit.")
@@ -123,12 +109,63 @@ def main():
 
         for i, doc in enumerate(results, 1):
             print(f"[{i}] {doc.key()}")
-            print(f"     Abstract: {doc.content()[0]}...\n")
+            for field, data in doc.content().items():
+                print(f"   {field}: {data.contents}...")
 
         if rag_enabled:
             response = app.rag(user_input, results)
             print("\n💬 LLM Response:")
             print(response["generation"])
+
+def test(app: SearchApp): 
+    filters = [
+        NCLFilter().set_fields(year=[109]), 
+        NCLFilter().set_fields(category=["碩士"]),
+        NCLFilter().set_fields(school_chinese=["國立中山大學"]),
+        NCLFilter().set_fields(dept_chinese=["資訊工程學系"]),
+        NCLFilter().set_fields(authors_chinese=['許佩鈴']),
+        NCLFilter().set_fields(advisors_chinese=['魏大華', '陳洋元'])
+    ]
+    queries = [
+        "深度學習",
+        "自然語言處理",
+        "機器學習",
+        "資料挖掘",
+        "人工智慧", 
+        "計算機視覺",
+    ]
+
+    for query, filter in zip(queries, filters):
+        print(f"\n🔍 Searching for: {query}")
+        results = app.search(query=query, filter=filter, limit=5)
+        if not results:
+            print("No results found.")
+            continue
+        for i, doc in enumerate(results, 1):
+            print(f"[{i}] {doc.key()}")
+            for field, data in doc.content().items():
+                print(f"   {field}: {data.contents}...")
+
+        response = app.rag(query, results)
+        print("\n💬 LLM Response:")
+        print(response["generation"])
+
+def main():
+    print("🔎 Initializing SearchApp...")
+    dataloader = DataLoader.from_default(DATASET)
+    library: Library = InMemoryLibrary()
+    sparse_embedder: SparseEmbedder = BGEM3Embedder(model_name=SPARSE_EMBEDDER)
+    dense_embedder: DenseEmbedder = AutoModelEmbedder(model_name=DENSE_EMBEDDER)
+    engine1 = HybridSearchEngine(
+        relational_search_engine=ElasticSearchEngine("https://localhost:9200", document_cls=DOC_CLS, filter_cls=FILT_CLS, es_index= "documents"),
+        vector_search_engine=MilvusSearchEngine(sparse_embedder, dense_embedder, document_cls=DOC_CLS, filter_cls=FILT_CLS)
+    )
+    engine2 = MilvusSearchEngine(sparse_embedder, dense_embedder, document_cls=DOC_CLS, filter_cls=FILT_CLS)
+    manager = Manager(library, [engine1, engine2], router_name="sparsity")
+    app = SearchApp(dataloader, manager)
+    app.setup()
+    test(app)
+    interact(app)
 
 if __name__ == "__main__":
     main()
