@@ -15,7 +15,7 @@ from tqdm import tqdm
 CHATBOT = "meta-llama/Llama-3.1-8B-Instruct"
 DENSE_EMBEDDER = "sentence-transformers/all-MiniLM-L6-v2"
 SPARSE_EMBEDDER = "BAAI/bge-m3"
-DATASET = "ncl"  # Default dataset to use
+DATASET = "history"  # Default dataset to use
 
 logger = setup_logger(
     name = 'search_app',
