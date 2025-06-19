@@ -1,4 +1,3 @@
-from src.core.collection import CollectionBuilder, CollectionConfig, FieldConfig, IndexConfig, CollectionOperator
 from src.core.llm import Agent
 from src.core.embedder import DenseEmbedder, SparseEmbedder, AutoModelEmbedder, BGEM3Embedder, MilvusBGEM3Embedder
 from src.core.data import DataLoader
@@ -17,8 +16,8 @@ CHATBOT = "meta-llama/Llama-3.1-8B-Instruct"
 DENSE_EMBEDDER = "sentence-transformers/all-MiniLM-L6-v2"
 SPARSE_EMBEDDER = "BAAI/bge-m3"
 DATASET = "ncl"  # Default dataset to use
-DOC_CLS = NCLDocument  # Default document class
-FILT_CLS = NCLFilter  # Default filter class
+DOC_CLS = Document.from_dataset(DATASET)  # Default document class based on dataset
+FILT_CLS = Filter.from_dataset(DATASET)  # Default filter class based on dataset
 
 logger = setup_logger(
     name = 'search_app',
@@ -52,17 +51,17 @@ class SearchApp:
                 logger.info(f"Inserted {count} documents, stopping further insertion.")
                 break
         logger.info(f"Total documents inserted: {count}")
-        self.llm: Agent = Agent.from_vllm(CHATBOT)
     
     def search(
             self, 
             query: str, 
             filter: Filter = None,
             limit: int = None, 
-        ): 
+        ) -> List[Document]: 
         return self.manager.fetch(query=query, filter=filter, limit=limit)
     
     def rag(self, query: str, results: List[Document]) -> dict:
+        if not self.llm: self.llm: Agent = Agent.from_vllm(CHATBOT)
         prompt = PromptBuilder().add_user_message(query).add_documents(results).build_prompt()
         generation = self.llm.generate(prompt)
         return {
@@ -162,7 +161,7 @@ def main():
     )
     engine2 = MilvusSearchEngine(sparse_embedder, dense_embedder, document_cls=DOC_CLS, filter_cls=FILT_CLS)
     manager = Manager(library, [engine1, engine2], router_name="sparsity")
-    app = SearchApp(dataloader, manager)
+    app = SearchApp(dataloader, manager, max_files=1000)
     app.setup()
     test(app)
     interact(app)

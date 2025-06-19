@@ -9,6 +9,8 @@ from scipy.sparse import csr_array, coo_array, vstack
 import numpy as np
 import contextlib
 import io
+import GPUtil
+
 
 logger = logging.getLogger(__name__)
 
@@ -53,10 +55,18 @@ class AutoModelEmbedder(DenseEmbedder):
         """
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.model = AutoModel.from_pretrained(model_name)
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        try:
+            # Select the GPU with most free memory
+            device_id = GPUtil.getFirstAvailable(order='memory', maxLoad=0.5, maxMemory=0.8)[0]
+            self.device = torch.device(f"cuda:{device_id}")
+        except Exception as e:
+            print(f"[WARN] No suitable GPU found: {e}. Falling back to CPU.")
+            self.device = torch.device("cpu")
+
         self.model.to(self.device)
         self.model.eval()
         self.batch_size = 32  # Default batch size for embedding
+        print(f"Model {model_name} is on device: {self.device}")
 
     def get_dim(self) -> int:
         """
@@ -101,23 +111,31 @@ class BGEM3Embedder(SparseEmbedder):
         :param model_name: The name of the model to be used for embedding.
         """
         self.model = BGEM3FlagModel(model_name, use_fp16=use_fp16)
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        try:
+            # Select the GPU with most free memory
+            device_id = GPUtil.getFirstAvailable(order='memory', maxLoad=0.5, maxMemory=0.8)[0]
+            self.device = torch.device(f"cuda:{device_id}")
+        except Exception as e:
+            print(f"[WARN] No suitable GPU found: {e}. Falling back to CPU.")
+            self.device = torch.device("cpu")
+
         self.model.model.to(self.device)  # Make sure the internal model is moved to GPU
         self.vocab_size = len(self.model.tokenizer)
-        print(f"Model is on device: {self.device}")
+        print(f"BGE Model is on device: {self.device}")
 
 
     def embed(self, texts: List[str]) -> csr_array:
         f = io.StringIO()
         #redirect redundant output to avoid cluttering the console
         with contextlib.redirect_stdout(f), contextlib.redirect_stderr(f):
-            output = self.model.encode(
+            output = self.model.encode_single_device(
                 sentences=texts,
                 return_dense=False,
                 return_sparse=True,
                 return_colbert_vecs=False,
                 batch_size=32,
             )
+            
         sparse_rows = []
         for lw in output["lexical_weights"]:
             indices = [int(k) for k in lw.keys()]

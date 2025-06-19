@@ -3,6 +3,7 @@ from src.core.document import Document, FieldType
 from src.core.filter import Filter
 from src.core.embedder import SparseEmbedder, DenseEmbedder
 from src.core.collection import FieldConfig, IndexConfig, CollectionConfig, CollectionOperator, CollectionBuilder
+from src.core.util import get 
 from typing import List
 from pymilvus import (
     DataType,
@@ -160,7 +161,7 @@ class MilvusSearchEngine(SearchEngine):
         }
         metadatas = [doc.metadata() for doc in documents]
         for f_name in self.filter_cls.filter_fields():
-            insert_dict[f_name] = [metadatas[i][f_name].contents[0] for i in range(len(documents))]
+            insert_dict[f_name] = [get(metadatas[i][f_name].contents, 0, metadatas[i][f_name].type.default_value()) for i in range(len(documents))]
 
         self.operator.buffered_insert([insert_dict[k] for k in self.config.field_names()])
 
@@ -187,7 +188,6 @@ class MilvusSearchEngine(SearchEngine):
     def search(self, query: str, filter: Filter, limit: int = 10) -> List[str]:
         dense_vector, sparse_vector = self.embed_query(query)
         expr = self.get_query(filter)
-        print(f"Search expression: {expr}")  # Debugging line
         results = self.operator.search_hybrid(
             dense_vector=dense_vector,
             sparse_vector=sparse_vector,

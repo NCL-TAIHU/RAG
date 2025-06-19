@@ -3,7 +3,7 @@ from pydantic import BaseModel, create_model
 from enum import Enum
 from pymilvus import DataType
 from dataclasses import dataclass
-from src.core.document import Document, NCLDocument
+from src.core.document import Document, NCLDocument, LitSearchDocument
 
 class Filter(BaseModel):
     """
@@ -15,6 +15,7 @@ class Filter(BaseModel):
 
     # The document class to validate against
     _doc_cls_: ClassVar[Optional[Type["Document"]]] = None
+    EMPTY: ClassVar["Filter"]
 
     def set_fields(self, **kwargs):
         """
@@ -30,10 +31,16 @@ class Filter(BaseModel):
 
     @classmethod
     def must_fields(cls) -> List[str]:
+        '''
+        Must fields must all be present in the document.
+        '''
         raise NotImplementedError("Subclasses must define their own must_fields.")
 
     @classmethod
     def filter_fields(cls) -> List[str]:
+        '''
+        Filter fields have to be at least one present in the document.
+        '''
         raise NotImplementedError("Subclasses must define their own filter_fields.")
     
     @classmethod
@@ -48,6 +55,7 @@ class Filter(BaseModel):
     @classmethod
     def from_document_type(cls, doc_cls: Type["Document"]) -> Type["Filter"]:
         """
+        Used Internally to create a filter class based on a Document type.
         Dynamically creates a subclass with fields from the doc's metadata schema.
         The subclass should still manually override `must_fields()` and `filter_fields()`.
         """
@@ -64,10 +72,25 @@ class Filter(BaseModel):
             __base__=cls,
             **fields
         )
-
+    
+    @classmethod
+    def from_dataset(cls, dataset_name: str) -> Type["Filter"]:
+        """
+        Creates a filter class based on a HuggingFace dataset.
+        The dataset must have a metadata schema compatible with Document.
+        """
+        if dataset_name == "ncl":
+            return NCLFilter
+        elif dataset_name == "litsearch":
+            return LitSearchFilter
+        else:
+            raise ValueError(f"Unsupported dataset: {dataset_name}. Supported datasets are 'ncl' and 'litsearch'.")
+        
 class NCLFilter(Filter.from_document_type(NCLDocument)):
     _doc_cls_ = NCLDocument  # triggers validate_fields during class creation
+    EMPTY: ClassVar["NCLFilter"]
 
+    
     def __init__(self, **data):
         super().__init__(**data)
         self.__class__.validate_fields(self._doc_cls_)
@@ -79,3 +102,23 @@ class NCLFilter(Filter.from_document_type(NCLDocument)):
     @classmethod
     def must_fields(cls) -> List[str]:
         return ["keywords", "authors_chinese", "advisors_chinese"]
+    
+NCLFilter.EMPTY = NCLFilter()
+    
+class LitSearchFilter(Filter.from_document_type(LitSearchDocument)):
+    _doc_cls_ = LitSearchDocument
+    EMPTY: ClassVar["LitSearchFilter"]
+
+    def __init__(self, **data):
+        super().__init__(**data)
+        self.__class__.validate_fields(self._doc_cls_)
+
+    @classmethod
+    def filter_fields(cls) -> List[str]:
+        return ["year", "venue"]
+
+    @classmethod
+    def must_fields(cls) -> List[str]:
+        return ["authors"]
+    
+LitSearchFilter.EMPTY = LitSearchFilter()

@@ -1,6 +1,7 @@
 from src.benchmark.entity import Benchmark, Report
-from typing import List
+from typing import List, Iterator
 import json
+from datasets import load_dataset
 
 def save_report(report: Report, file_path: str):
     '''
@@ -20,16 +21,46 @@ def save_benchmarks(benchmarks: List[Benchmark], file_path: str):
             f.write('\n')
 
 
-def load_benchmarks(file_path: str) -> List[Benchmark]:
-    '''
-    Loads benchmarks from a JSONL file.
-    Each line is parsed into a Benchmark object.
-    '''
-    benchmarks = []
-    with open(file_path, 'r', encoding='utf-8') as f:
-        for line in f:
-            if line.strip():
-                data = json.loads(line)
-                benchmarks.append(Benchmark(**data))
-    return benchmarks
-  
+class BenchmarkFactory:
+    def __init__(self, source: str, path: str = None):
+        self.source = source
+        self.path = path
+
+    @classmethod
+    def from_default(cls, name: str, path: str = None) -> "BenchmarkFactory":
+        """
+        Factory method to construct a BenchmarkFactory.
+        - name="auto" expects a local JSONL file path.
+        - name="litsearch" loads from HuggingFace datasets.
+        """
+        if name == "auto" and not path:
+            raise ValueError("Path must be provided for 'auto' benchmark source.")
+        if name not in {"auto", "litsearch"}:
+            raise ValueError(f"Unsupported benchmark source: {name}")
+        return cls(name, path)
+
+    def stream(self) -> Iterator[Benchmark]:
+        """
+        Yields Benchmark objects from the configured source.
+        """
+        if self.source == "auto":
+            yield from self._stream_local()
+        elif self.source == "litsearch":
+            yield from self._stream_litsearch()
+        else:
+            raise NotImplementedError(f"Unsupported source: {self.source}")
+
+    def _stream_local(self) -> Iterator[Benchmark]:
+        with open(self.path, "r", encoding="utf-8") as f:
+            for line in f:
+                if line.strip():
+                    data = json.loads(line)
+                    yield Benchmark(**data)
+
+    def _stream_litsearch(self) -> Iterator[Benchmark]:
+        query_data = load_dataset("princeton-nlp/LitSearch", "query", split="full")
+        for entry in query_data:
+            yield Benchmark(
+                question=entry["query"],
+                answer_ids=[str(cid) for cid in entry.get("corpusids", [])]
+            )

@@ -1,8 +1,11 @@
-from src.core.document import Document, NCLDocument, Info
+from src.core.document import Document, NCLDocument, Info, LitSearchDocument
 import os
 from typing import Any, Iterator, List, Dict
 import json
 import yaml
+from datasets import load_dataset
+from tqdm import tqdm
+from src.core.util import coalesce
 config = yaml.safe_load(open("config/data.yml", "r"))
 
 class DataLoader: 
@@ -28,6 +31,7 @@ class DataLoader:
         Factory method to return a dataset-specific DataLoader.
         """
         if dataset == "history":
+            raise NotImplementedError("Arxiv dataset loader is not implemented yet.")
             base_path = config[dataset]['path']
             return PathsDataLoader(
                 abstract_path=os.path.join(base_path, "abstracts"),
@@ -39,6 +43,11 @@ class DataLoader:
         elif dataset == "ncl": 
             return NCLDataLoader(
                 base_path=config[dataset]['path'],
+                buffer_size=buffer_size
+            )
+        
+        elif dataset == 'litsearch':
+            return LitSearchDataLoader(
                 buffer_size=buffer_size
             )
         
@@ -160,6 +169,76 @@ class NCLDataLoader(DataLoader):
             self.documents = []
 
 
+
+class LitSearchDataLoader(DataLoader):
+    def __init__(self, buffer_size: int = 64):
+        self.buffer_size = buffer_size
+        self.documents: List[Document] = []
+        self.dataset = load_dataset("princeton-nlp/LitSearch", "corpus_s2orc", split="full")
+
+    def stream(self) -> Iterator[Document]:
+        for i, entry in enumerate(self.dataset):
+            content = entry.get("content", {})
+            annotations = content.get("annotations", {})
+
+            text = content.get("text", "")
+            title = self.extract_span(text, annotations, "title")
+            abstract = self.extract_span(text, annotations, "abstract")
+            authors = self.extract_list_of_spans(text, annotations, "author")
+
+            #print(entry)
+            try: 
+                doc = LitSearchDocument(
+                    corpusid=entry.get("corpusid", i),
+                    externalids=coalesce(entry.get("externalids"), {}),
+                    title=title,
+                    abstract=abstract,
+                    authors=authors,
+                    venue=content.get("venue"),
+                    year=content.get("year"),
+                    pdfurl=entry.get("source", {}).get("pdfurls", [None])[0],
+                    text=text
+                )
+            except Exception as e:
+                print(entry)
+                print(f"Error processing entry {i}: {e}")
+                raise e 
+            
+            yield doc
+
+    def extract_span(self, text: str, annotations: Dict[str, str], key: str) -> str:
+        """Extract the first span of annotated text."""
+        try:
+            spans = json.loads(annotations.get(key, "[]"))
+            if spans:
+                span = spans[0]
+                return text[span["start"]:span["end"]]
+        except Exception:
+            pass
+        return ""
+
+    def extract_list_of_spans(self, text: str, annotations: Dict[str, str], key: str) -> List[str]:
+        """Extract all spans of annotated text."""
+        try:
+            spans = json.loads(annotations.get(key, "[]"))
+            return [text[span["start"]:span["end"]] for span in spans]
+        except Exception:
+            return []
+
+    def load(self) -> Iterator[List[Document]]:
+        for doc in self.stream():
+            yield from self.handle(doc)
+        yield from self.flush()
+
+    def handle(self, document: Document) -> Iterator[List[Document]]:
+        self.documents.append(document)
+        if len(self.documents) >= self.buffer_size:
+            yield from self.flush()
+
+    def flush(self) -> Iterator[List[Document]]:
+        if self.documents:
+            yield self.documents
+            self.documents = []
 
 class Sampler: 
     def __init__(self, dataloader: DataLoader, max_samples: int = 1000):

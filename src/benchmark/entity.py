@@ -1,8 +1,9 @@
 from pydantic import BaseModel
+from typing import List, Optional
 
 class Benchmark(BaseModel):
     question: str
-    answer_id: str
+    answer_ids: List[str]
 
 class Report(BaseModel):
     """
@@ -12,3 +13,4 @@ class Report(BaseModel):
     top_k: int
     hits: int
     total: int
+    description: Optional[str] = None

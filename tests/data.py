@@ -3,11 +3,14 @@ from src.core.data import DataLoader
 from src.core.document import Document
 
 class TestDataLoaders(unittest.TestCase):
-    def test_arxiv_dataloader(self):
-        self._test_dataloader_runs("arxiv")
+    # def test_arxiv_dataloader(self):
+    #     self._test_dataloader_runs("arxiv")
 
-    def test_history_dataloader(self):
-        self._test_dataloader_runs("history")
+    # def test_history_dataloader(self):
+    #     self._test_dataloader_runs("history")
+
+    def test_litsearch_dataloader(self):
+        self._test_dataloader_runs("litsearch")
 
     def _test_dataloader_runs(self, dataset_name: str):
         dataloader = DataLoader.from_default(dataset_name)

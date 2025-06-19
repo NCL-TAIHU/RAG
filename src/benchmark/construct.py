@@ -16,9 +16,9 @@ def generate_benchmarks(documents: List[Document], prompt: str, llm: Agent) -> L
     '''
     benchmarks = []
     for doc in tqdm(documents, desc="Generating benchmarks"):
-        input_prompt = f"{prompt}\n\nDocument:\n{doc.chinese.abstract}"
+        input_prompt = f"{prompt}\n\nDocument:\n{doc.content().values()[0]}"
         question = llm.generate(input_prompt).strip()
-        benchmarks.append(Benchmark(question=question, answer_id=doc.id))
+        benchmarks.append(Benchmark(question=question, answer_ids=[doc.id]))
     return benchmarks
 
 if __name__ == "__main__":

@@ -3,6 +3,7 @@ from pydantic import BaseModel, create_model
 from enum import Enum
 from pymilvus import DataType
 from dataclasses import dataclass
+from datasets import load_dataset
 
 # --- Enum for field types ---
 class FieldType(str, Enum):
@@ -10,6 +11,14 @@ class FieldType(str, Enum):
     INTEGER = "int"
     FLOAT = "float"
     BOOLEAN = "bool"
+
+    def default_value(self):
+        return {
+            "str": "",
+            "int": 0,
+            "float": 0.0,
+            "bool": False
+        }[self.value]
 
     def to_python_type(self):
         return {
@@ -56,7 +65,19 @@ class Document:
     @classmethod
     def content_schema(cls) -> Dict[str, Field]:
         assert cls.SCHEMA_INSTANCE is not None, "Document schema instance is not initialized."
-        return [f.model_copy(update={"contents": []}) for f in cls.SCHEMA_INSTANCE.content()]
+        return cls.SCHEMA_INSTANCE.content()
+    
+    @classmethod
+    def from_dataset(cls, dataset_name: str) -> Type["Document"]:
+        """
+        Factory method to gives the corresponding a Document class from a dataset.
+        """
+        if dataset_name == "ncl":
+            return NCLDocument
+        elif dataset_name == "litsearch":
+            return LitSearchDocument
+        else:
+            raise ValueError(f"Unsupported dataset: {dataset_name}. Supported datasets are 'ncl' and 'litsearch'.")
 
 # --------------NCL Document -----------------
 # --- Info object for language-specific fields ---
@@ -118,4 +139,52 @@ NCLDocument.SCHEMA_INSTANCE = NCLDocument(
     keywords=[],
     chinese=Info(),
     english=Info()
+)
+
+#------------ LitSearch Document --------------
+class LitSearchDocument(Document, BaseModel):
+    SCHEMA_INSTANCE: ClassVar["LitSearchDocument"]
+
+    corpusid: int
+    externalids: Dict[str, Optional[str]] = {}
+    title: Optional[str] = None
+    abstract: Optional[str] = None
+    authors: Optional[List[str]] = None
+    venue: Optional[str] = None
+    year: Optional[int] = None
+    pdfurl: Optional[str] = None
+
+    def key(self) -> str:
+        return str(self.corpusid)
+
+    def metadata(self) -> Dict[str, Field]:
+        data = [
+            Field(name="corpusid", contents=[self.corpusid], type=FieldType.INTEGER, max_len=16),
+            Field(name="year", contents=[self.year] if self.year else [], type=FieldType.INTEGER, max_len=4),
+            Field(name="venue", contents=[self.venue] if self.venue else [], type=FieldType.STRING, max_len=128),
+            Field(name="authors", contents=self.authors or [], type=FieldType.STRING, max_len=128),
+            Field(name="doi", contents=[self.externalids.get("doi")] if self.externalids.get("doi") else [], type=FieldType.STRING, max_len=128),
+            Field(name="arxiv", contents=[self.externalids.get("arxiv")] if self.externalids.get("arxiv") else [], type=FieldType.STRING, max_len=64),
+            Field(name="dblp", contents=[self.externalids.get("dblp")] if self.externalids.get("dblp") else [], type=FieldType.STRING, max_len=128),
+            Field(name="pdfurl", contents=[self.pdfurl] if self.pdfurl else [], type=FieldType.STRING, max_len=256)
+        ]
+        return {f.name: f for f in data}
+
+    def content(self) -> Dict[str, Field]:
+        data = [
+            Field(name="abstract", contents=[self.abstract] if self.abstract else [], type=FieldType.STRING, max_len=2048), 
+            Field(name="title", contents=[self.title] if self.title else [], type=FieldType.STRING, max_len=256),
+        ]
+        return {f.name: f for f in data}
+
+# --- Define the singleton schema instance ---
+LitSearchDocument.SCHEMA_INSTANCE = LitSearchDocument(
+    corpusid=0,
+    title=None,
+    abstract=None,
+    authors=[],
+    venue=None,
+    year=None,
+    pdfurl=None,
+    externalids={}
 )
