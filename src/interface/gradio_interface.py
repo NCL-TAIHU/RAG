@@ -102,36 +102,36 @@ def create_interface():
                         label="類別 (用逗號分隔)",
                         placeholder="例如：碩士,博士"
                     )
-                    schools = gr.Textbox(
-                        label="學校 (用逗號分隔)",
-                        placeholder="例如：國立清華大學"
-                    )
-                    depts = gr.Textbox(
-                        label="系所 (用逗號分隔)",
-                        placeholder="例如：資訊工程學系"
-                    )
+                    # schools = gr.Textbox(
+                    #     label="學校 (用逗號分隔)",
+                    #     placeholder="例如：國立清華大學"
+                    # )
+                    # depts = gr.Textbox(
+                    #     label="系所 (用逗號分隔)",
+                    #     placeholder="例如：資訊工程學系"
+                    # )
                     keywords = gr.Textbox(
                         label="關鍵字 (用逗號分隔)",
                         placeholder="例如：機器學習,深度學習"
                     )
-                    authors = gr.Textbox(
-                        label="作者 (用逗號分隔)",
-                        placeholder="例如：張三,李四"
-                    )
-                    advisors = gr.Textbox(
-                        label="指導教授 (用逗號分隔)",
-                        placeholder="例如：王五,趙六"
-                    )
+                    # authors = gr.Textbox(
+                    #     label="作者 (用逗號分隔)",
+                    #     placeholder="例如：張三,李四"
+                    # )
+                    # advisors = gr.Textbox(
+                    #     label="指導教授 (用逗號分隔)",
+                    #     placeholder="例如：王五,趙六"
+                    # )
         
         def process_search(
             query: str,
             years: str,
             categories: str,
-            schools: str,
-            depts: str,
+            # schools: str,
+            # depts: str,
             keywords: str,
-            authors: str,
-            advisors: str,
+            # authors: str,
+            # advisors: str,
             history: List[List[str]]
         ) -> tuple:
             if not query.strip():
@@ -140,11 +140,11 @@ def create_interface():
             # 處理輸入的篩選條件
             years_list = [int(y.strip()) for y in years.split(",")] if years else []
             categories_list = [c.strip() for c in categories.split(",")] if categories else []
-            schools_list = [s.strip() for s in schools.split(",")] if schools else []
-            depts_list = [d.strip() for d in depts.split(",")] if depts else []
+            # schools_list = [s.strip() for s in schools.split(",")] if schools else []
+            # depts_list = [d.strip() for d in depts.split(",")] if depts else []
             keywords_list = [k.strip() for k in keywords.split(",")] if keywords else []
-            authors_list = [a.strip() for a in authors.split(",")] if authors else []
-            advisors_list = [adv.strip() for adv in advisors.split(",")] if advisors else []
+            # authors_list = [a.strip() for a in authors.split(",")] if authors else []
+            # advisors_list = [adv.strip() for adv in advisors.split(",")] if advisors else []
             
             # 執行搜尋（使用固定的搜尋方法和結果數量）
             response = search_documents(
@@ -153,11 +153,11 @@ def create_interface():
                 limit=5,  # 固定顯示5個結果
                 years=years_list,
                 categories=categories_list,
-                schools=schools_list,
-                depts=depts_list,
+                # schools=schools_list,
+                # depts=depts_list,
                 keywords=keywords_list,
-                authors=authors_list,
-                advisors=advisors_list
+                # authors=authors_list,
+                # advisors=advisors_list
             )
             
             if "error" in response:
@@ -180,8 +180,8 @@ def create_interface():
             fn=process_search,
             inputs=[
                 query,
-                years, categories, schools, depts,
-                keywords, authors, advisors,
+                years, categories, # schools, depts,
+                keywords, # authors, advisors,
                 chatbot
             ],
             outputs=[chatbot]
@@ -196,8 +196,8 @@ def create_interface():
             fn=process_search,
             inputs=[
                 query,
-                years, categories, schools, depts,
-                keywords, authors, advisors,
+                years, categories, # schools, depts,
+                keywords, # authors, advisors,
                 chatbot
             ],
             outputs=[chatbot]
