@@ -376,10 +376,31 @@ class ElasticSearchEngine(SearchEngine):
         return es_query
     
     def search(self, query: str, filter: Filter, limit: int = 10000) -> List[str]:
-        es_query = self.get_query(filter, limit)
-        #count = self.es.count(index=self.es_index, body=es_query)
-        response = self.es.search(index=self.es_index, body=es_query)
-        return [hit["_id"] for hit in response["hits"]["hits"]]
+        # # es_query = self.get_query(filter, limit)
+        # es_query = self.get_query(filter)    # Here have some adjustment to solve some problems
+        #  # Here have some adjustment to solve some problems
+        # count = self.es.count(index=self.es_index, body=es_query)
+        # response = self.es.search(index=self.es_index, body=es_query, size=min(count, limit))  
+        
+        # return [hit["_id"] for hit in response["hits"]["hits"]]
+        es_query = self.get_query(filter)
+        try:
+            # 直接使用 search 查詢，不需要先計算總數
+            response = self.es.search(
+                index=self.es_index,
+                body=es_query,
+                size=limit
+            )
+            
+            # 確保 response 是字典類型
+            if isinstance(response, dict) and "hits" in response and "hits" in response["hits"]:
+                return [hit["_id"] for hit in response["hits"]["hits"]]
+            else:
+                print(f"Unexpected Elasticsearch response format: {response}")
+                return []
+        except Exception as e:
+            print(f"Elasticsearch search error: {str(e)}")
+            return []        
 
     def spec(self) -> SearchSpec:
         return SearchSpec(name="elastic_search_engine", optimal_for="strong")
