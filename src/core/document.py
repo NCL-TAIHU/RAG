@@ -43,6 +43,8 @@ class Field(BaseModel):
     contents: List[Any] = []
     max_len: int
     type: FieldType
+    def to_string(self) -> str:
+        return f"{self.name}: {', '.join(map(str, self.contents))} ({self.type.value})"
 
 # --- Abstract document interface ---
 class Document:

@@ -59,15 +59,15 @@ if __name__ == "__main__":
     )
     engine2 = MilvusSearchEngine(sparse_embedder, dense_embedder, document_cls=DOC_CLS, filter_cls=FILT_CLS)
     manager = Manager(library, [engine1, engine2], router_name="sparsity")
-    app = SearchApp(dataloader, manager, max_files=1000000)
+    app = SearchApp(dataloader, manager, max_files=10000000)
     app.setup()
     factory = BenchmarkFactory.from_default(BENCHMARK)
     evaluator = SearchAppEvaluator()
-    for k in [1, 10, 100]: 
+    for k in list(range(1, 11)) + list(range(20, 101, 10)):
         hybrid_report = evaluator.evaluate_hybrid(app, factory.stream(), k)
-        hybrid_report.description = ("Content schema" + DOC_CLS.content_schema() +
-                                    "\n Metadata schema: " + DOC_CLS.metadata_schema() +
-                                    "\n Filter must fields" + FILT_CLS.must_fields() +
-                                    "\n Filter filter fields" + FILT_CLS.filter_fields()) 
+        hybrid_report.description = ("Content schema: \n" + '\n'.join([f.to_string() for f in DOC_CLS.content_schema().values()]) +
+                                    "\n Metadata schema: \n" + "\n".join([f.to_string() for f in DOC_CLS.metadata_schema().values()])  +
+                                    "\n Filter must fields: \n" + '\n'.join(FILT_CLS.must_fields()) +
+                                    "\n Filter filter fields: \n" + '\n'.join(FILT_CLS.filter_fields()))  
         
-        save_report(hybrid_report, f"{DATASET}_top{k}_hybrid_report.json")
+        save_report(hybrid_report, f"reports/{DATASET}_top{k}_hybrid_report.json")
