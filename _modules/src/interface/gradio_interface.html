@@ -1,0 +1,328 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>src.interface.gradio_interface &mdash; taihu 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            taihu
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">src</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">taihu</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">src.interface.gradio_interface</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for src.interface.gradio_interface</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">gradio</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">gr</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">requests</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Any</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+
+<span class="c1"># API endpoint</span>
+<span class="n">API_URL</span> <span class="o">=</span> <span class="s2">&quot;http://localhost:8000&quot;</span>
+
+<div class="viewcode-block" id="search_documents">
+<a class="viewcode-back" href="../../../src.interface.html#src.interface.gradio_interface.search_documents">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">search_documents</span><span class="p">(</span>
+    <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">method</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">years</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+    <span class="n">categories</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">schools</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">depts</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">keywords</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">authors</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">advisors</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    執行文檔搜尋並返回結果</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># 構建搜尋請求</span>
+    <span class="n">search_request</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;query&quot;</span><span class="p">:</span> <span class="n">query</span><span class="p">,</span>
+        <span class="s2">&quot;method&quot;</span><span class="p">:</span> <span class="n">method</span><span class="p">,</span>
+        <span class="s2">&quot;limit&quot;</span><span class="p">:</span> <span class="n">limit</span><span class="p">,</span>
+        <span class="s2">&quot;filter&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;years&quot;</span><span class="p">:</span> <span class="n">years</span> <span class="k">if</span> <span class="n">years</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;categories&quot;</span><span class="p">:</span> <span class="n">categories</span> <span class="k">if</span> <span class="n">categories</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;schools&quot;</span><span class="p">:</span> <span class="n">schools</span> <span class="k">if</span> <span class="n">schools</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;depts&quot;</span><span class="p">:</span> <span class="n">depts</span> <span class="k">if</span> <span class="n">depts</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;keywords&quot;</span><span class="p">:</span> <span class="n">keywords</span> <span class="k">if</span> <span class="n">keywords</span> <span class="k">else</span> <span class="p">[],</span>
+            <span class="s2">&quot;authors&quot;</span><span class="p">:</span> <span class="n">authors</span> <span class="k">if</span> <span class="n">authors</span> <span class="k">else</span> <span class="p">[],</span>
+            <span class="s2">&quot;advisors&quot;</span><span class="p">:</span> <span class="n">advisors</span> <span class="k">if</span> <span class="n">advisors</span> <span class="k">else</span> <span class="p">[]</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+    
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># 發送請求到 API</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">API_URL</span><span class="si">}</span><span class="s2">/search&quot;</span><span class="p">,</span>
+            <span class="n">json</span><span class="o">=</span><span class="n">search_request</span><span class="p">,</span>
+            <span class="n">headers</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;Content-Type&quot;</span><span class="p">:</span> <span class="s2">&quot;application/json&quot;</span><span class="p">}</span>
+        <span class="p">)</span>
+        <span class="n">response</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)}</span></div>
+
+
+<div class="viewcode-block" id="format_search_results">
+<a class="viewcode-back" href="../../../src.interface.html#src.interface.gradio_interface.format_search_results">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">format_search_results</span><span class="p">(</span><span class="n">results</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    格式化搜尋結果為易讀的文本</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">results</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;沒有找到相關結果。&quot;</span>
+    
+    <span class="n">formatted_text</span> <span class="o">=</span> <span class="s2">&quot;📚 相關文獻：</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">result</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="n">formatted_text</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">. </span><span class="si">{</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;title&#39;</span><span class="p">]</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+    
+    <span class="k">return</span> <span class="n">formatted_text</span></div>
+
+
+<div class="viewcode-block" id="create_interface">
+<a class="viewcode-back" href="../../../src.interface.html#src.interface.gradio_interface.create_interface">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_interface</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    創建 Gradio 介面</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="n">gr</span><span class="o">.</span><span class="n">Blocks</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="s2">&quot;RAG 智能助手&quot;</span><span class="p">,</span> <span class="n">theme</span><span class="o">=</span><span class="n">gr</span><span class="o">.</span><span class="n">themes</span><span class="o">.</span><span class="n">Soft</span><span class="p">())</span> <span class="k">as</span> <span class="n">interface</span><span class="p">:</span>
+        <span class="c1"># 聊天歷史</span>
+        <span class="n">chatbot</span> <span class="o">=</span> <span class="n">gr</span><span class="o">.</span><span class="n">Chatbot</span><span class="p">(</span>
+            <span class="n">label</span><span class="o">=</span><span class="s2">&quot;對話歷史&quot;</span><span class="p">,</span>
+            <span class="n">height</span><span class="o">=</span><span class="mi">600</span><span class="p">,</span>
+            <span class="n">show_copy_button</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">avatar_images</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;👤&quot;</span><span class="p">,</span> <span class="s2">&quot;🤖&quot;</span><span class="p">)</span>
+        <span class="p">)</span>
+        
+        <span class="k">with</span> <span class="n">gr</span><span class="o">.</span><span class="n">Row</span><span class="p">():</span>
+            <span class="k">with</span> <span class="n">gr</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mi">4</span><span class="p">):</span>
+                <span class="c1"># 搜尋輸入</span>
+                <span class="n">query</span> <span class="o">=</span> <span class="n">gr</span><span class="o">.</span><span class="n">Textbox</span><span class="p">(</span>
+                    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;請輸入您的問題&quot;</span><span class="p">,</span>
+                    <span class="n">placeholder</span><span class="o">=</span><span class="s2">&quot;例如：請告訴我機器學習在自然語言處理中的應用...&quot;</span><span class="p">,</span>
+                    <span class="n">lines</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                    <span class="n">show_label</span><span class="o">=</span><span class="kc">False</span>
+                <span class="p">)</span>
+            
+            <span class="k">with</span> <span class="n">gr</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+                <span class="c1"># 搜尋按鈕</span>
+                <span class="n">search_btn</span> <span class="o">=</span> <span class="n">gr</span><span class="o">.</span><span class="n">Button</span><span class="p">(</span><span class="s2">&quot;發送&quot;</span><span class="p">,</span> <span class="n">variant</span><span class="o">=</span><span class="s2">&quot;primary&quot;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="s2">&quot;lg&quot;</span><span class="p">)</span>
+        
+        <span class="k">with</span> <span class="n">gr</span><span class="o">.</span><span class="n">Accordion</span><span class="p">(</span><span class="s2">&quot;進階搜尋設定&quot;</span><span class="p">,</span> <span class="nb">open</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+            <span class="k">with</span> <span class="n">gr</span><span class="o">.</span><span class="n">Row</span><span class="p">():</span>
+                <span class="k">with</span> <span class="n">gr</span><span class="o">.</span><span class="n">Column</span><span class="p">():</span>
+                    <span class="c1"># 篩選條件</span>
+                    <span class="n">years</span> <span class="o">=</span> <span class="n">gr</span><span class="o">.</span><span class="n">Textbox</span><span class="p">(</span>
+                        <span class="n">label</span><span class="o">=</span><span class="s2">&quot;年份 (用逗號分隔)&quot;</span><span class="p">,</span>
+                        <span class="n">placeholder</span><span class="o">=</span><span class="s2">&quot;例如：108,109,110&quot;</span>
+                    <span class="p">)</span>
+                    <span class="n">categories</span> <span class="o">=</span> <span class="n">gr</span><span class="o">.</span><span class="n">Textbox</span><span class="p">(</span>
+                        <span class="n">label</span><span class="o">=</span><span class="s2">&quot;類別 (用逗號分隔)&quot;</span><span class="p">,</span>
+                        <span class="n">placeholder</span><span class="o">=</span><span class="s2">&quot;例如：碩士,博士&quot;</span>
+                    <span class="p">)</span>
+                    <span class="c1"># schools = gr.Textbox(</span>
+                    <span class="c1">#     label=&quot;學校 (用逗號分隔)&quot;,</span>
+                    <span class="c1">#     placeholder=&quot;例如：國立清華大學&quot;</span>
+                    <span class="c1"># )</span>
+                    <span class="c1"># depts = gr.Textbox(</span>
+                    <span class="c1">#     label=&quot;系所 (用逗號分隔)&quot;,</span>
+                    <span class="c1">#     placeholder=&quot;例如：資訊工程學系&quot;</span>
+                    <span class="c1"># )</span>
+                    <span class="n">keywords</span> <span class="o">=</span> <span class="n">gr</span><span class="o">.</span><span class="n">Textbox</span><span class="p">(</span>
+                        <span class="n">label</span><span class="o">=</span><span class="s2">&quot;關鍵字 (用逗號分隔)&quot;</span><span class="p">,</span>
+                        <span class="n">placeholder</span><span class="o">=</span><span class="s2">&quot;例如：機器學習,深度學習&quot;</span>
+                    <span class="p">)</span>
+                    <span class="c1"># authors = gr.Textbox(</span>
+                    <span class="c1">#     label=&quot;作者 (用逗號分隔)&quot;,</span>
+                    <span class="c1">#     placeholder=&quot;例如：張三,李四&quot;</span>
+                    <span class="c1"># )</span>
+                    <span class="c1"># advisors = gr.Textbox(</span>
+                    <span class="c1">#     label=&quot;指導教授 (用逗號分隔)&quot;,</span>
+                    <span class="c1">#     placeholder=&quot;例如：王五,趙六&quot;</span>
+                    <span class="c1"># )</span>
+        
+        <span class="k">def</span><span class="w"> </span><span class="nf">process_search</span><span class="p">(</span>
+            <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+            <span class="n">years</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+            <span class="n">categories</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+            <span class="c1"># schools: str,</span>
+            <span class="c1"># depts: str,</span>
+            <span class="n">keywords</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+            <span class="c1"># authors: str,</span>
+            <span class="c1"># advisors: str,</span>
+            <span class="n">history</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span>
+        <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">query</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
+                <span class="k">return</span> <span class="n">history</span>
+            
+            <span class="c1"># 處理輸入的篩選條件</span>
+            <span class="n">years_list</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span> <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">years</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)]</span> <span class="k">if</span> <span class="n">years</span> <span class="k">else</span> <span class="p">[]</span>
+            <span class="n">categories_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">categories</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)]</span> <span class="k">if</span> <span class="n">categories</span> <span class="k">else</span> <span class="p">[]</span>
+            <span class="c1"># schools_list = [s.strip() for s in schools.split(&quot;,&quot;)] if schools else []</span>
+            <span class="c1"># depts_list = [d.strip() for d in depts.split(&quot;,&quot;)] if depts else []</span>
+            <span class="n">keywords_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">k</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">keywords</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)]</span> <span class="k">if</span> <span class="n">keywords</span> <span class="k">else</span> <span class="p">[]</span>
+            <span class="c1"># authors_list = [a.strip() for a in authors.split(&quot;,&quot;)] if authors else []</span>
+            <span class="c1"># advisors_list = [adv.strip() for adv in advisors.split(&quot;,&quot;)] if advisors else []</span>
+            
+            <span class="c1"># 執行搜尋（使用固定的搜尋方法和結果數量）</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="n">search_documents</span><span class="p">(</span>
+                <span class="n">query</span><span class="o">=</span><span class="n">query</span><span class="p">,</span>
+                <span class="n">method</span><span class="o">=</span><span class="s2">&quot;hybrid_search&quot;</span><span class="p">,</span>  <span class="c1"># 固定使用混合搜尋</span>
+                <span class="n">limit</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>  <span class="c1"># 固定顯示5個結果</span>
+                <span class="n">years</span><span class="o">=</span><span class="n">years_list</span><span class="p">,</span>
+                <span class="n">categories</span><span class="o">=</span><span class="n">categories_list</span><span class="p">,</span>
+                <span class="c1"># schools=schools_list,</span>
+                <span class="c1"># depts=depts_list,</span>
+                <span class="n">keywords</span><span class="o">=</span><span class="n">keywords_list</span><span class="p">,</span>
+                <span class="c1"># authors=authors_list,</span>
+                <span class="c1"># advisors=advisors_list</span>
+            <span class="p">)</span>
+            
+            <span class="k">if</span> <span class="s2">&quot;error&quot;</span> <span class="ow">in</span> <span class="n">response</span><span class="p">:</span>
+                <span class="n">history</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">query</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;❌ 發生錯誤：</span><span class="si">{</span><span class="n">response</span><span class="p">[</span><span class="s1">&#39;error&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">])</span>
+                <span class="k">return</span> <span class="n">history</span>
+            
+            <span class="c1"># 格式化結果</span>
+            <span class="n">results_text</span> <span class="o">=</span> <span class="n">format_search_results</span><span class="p">(</span><span class="n">response</span><span class="p">[</span><span class="s2">&quot;results&quot;</span><span class="p">])</span>
+            <span class="n">llm_text</span> <span class="o">=</span> <span class="n">response</span><span class="p">[</span><span class="s2">&quot;llm_response&quot;</span><span class="p">]</span>
+            
+            <span class="c1"># 組合回應</span>
+            <span class="n">full_response</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">llm_text</span><span class="si">}</span><span class="se">\n\n</span><span class="si">{</span><span class="n">results_text</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">⏱️ 查詢時間：</span><span class="si">{</span><span class="n">response</span><span class="p">[</span><span class="s1">&#39;query_time&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> 秒&quot;</span>
+            
+            <span class="c1"># 更新歷史</span>
+            <span class="n">history</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">query</span><span class="p">,</span> <span class="n">full_response</span><span class="p">])</span>
+            <span class="k">return</span> <span class="n">history</span>
+        
+        <span class="c1"># 設置事件處理</span>
+        <span class="n">search_btn</span><span class="o">.</span><span class="n">click</span><span class="p">(</span>
+            <span class="n">fn</span><span class="o">=</span><span class="n">process_search</span><span class="p">,</span>
+            <span class="n">inputs</span><span class="o">=</span><span class="p">[</span>
+                <span class="n">query</span><span class="p">,</span>
+                <span class="n">years</span><span class="p">,</span> <span class="n">categories</span><span class="p">,</span> <span class="c1"># schools, depts,</span>
+                <span class="n">keywords</span><span class="p">,</span> <span class="c1"># authors, advisors,</span>
+                <span class="n">chatbot</span>
+            <span class="p">],</span>
+            <span class="n">outputs</span><span class="o">=</span><span class="p">[</span><span class="n">chatbot</span><span class="p">]</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">then</span><span class="p">(</span>
+            <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>  <span class="c1"># 清空輸入框</span>
+            <span class="n">inputs</span><span class="o">=</span><span class="p">[],</span>
+            <span class="n">outputs</span><span class="o">=</span><span class="p">[</span><span class="n">query</span><span class="p">]</span>
+        <span class="p">)</span>
+        
+        <span class="c1"># 按 Enter 發送</span>
+        <span class="n">query</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span>
+            <span class="n">fn</span><span class="o">=</span><span class="n">process_search</span><span class="p">,</span>
+            <span class="n">inputs</span><span class="o">=</span><span class="p">[</span>
+                <span class="n">query</span><span class="p">,</span>
+                <span class="n">years</span><span class="p">,</span> <span class="n">categories</span><span class="p">,</span> <span class="c1"># schools, depts,</span>
+                <span class="n">keywords</span><span class="p">,</span> <span class="c1"># authors, advisors,</span>
+                <span class="n">chatbot</span>
+            <span class="p">],</span>
+            <span class="n">outputs</span><span class="o">=</span><span class="p">[</span><span class="n">chatbot</span><span class="p">]</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">then</span><span class="p">(</span>
+            <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>  <span class="c1"># 清空輸入框</span>
+            <span class="n">inputs</span><span class="o">=</span><span class="p">[],</span>
+            <span class="n">outputs</span><span class="o">=</span><span class="p">[</span><span class="n">query</span><span class="p">]</span>
+        <span class="p">)</span>
+    
+    <span class="k">return</span> <span class="n">interface</span></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">interface</span> <span class="o">=</span> <span class="n">create_interface</span><span class="p">()</span>
+    <span class="n">interface</span><span class="o">.</span><span class="n">launch</span><span class="p">(</span>
+        <span class="n">server_name</span><span class="o">=</span><span class="s2">&quot;0.0.0.0&quot;</span><span class="p">,</span>
+        <span class="n">server_port</span><span class="o">=</span><span class="mi">7860</span><span class="p">,</span>
+        <span class="n">share</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)</span> 
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Jerome Tze-Hou Hsu, Wenjie Lu, Pinyi Li.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

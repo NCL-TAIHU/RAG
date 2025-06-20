@@ -1,0 +1,393 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>src.core.document &mdash; taihu 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            taihu
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">src</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">taihu</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">src.core.document</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for src.core.document</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">ClassVar</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">Self</span><span class="p">,</span> <span class="n">Any</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">create_model</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Enum</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pymilvus</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datasets</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_dataset</span>
+
+<span class="c1"># --- Enum for field types ---</span>
+<div class="viewcode-block" id="FieldType">
+<a class="viewcode-back" href="../../../src.core.html#src.core.document.FieldType">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">FieldType</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
+    <span class="n">STRING</span> <span class="o">=</span> <span class="s2">&quot;str&quot;</span>
+    <span class="n">INTEGER</span> <span class="o">=</span> <span class="s2">&quot;int&quot;</span>
+    <span class="n">FLOAT</span> <span class="o">=</span> <span class="s2">&quot;float&quot;</span>
+    <span class="n">BOOLEAN</span> <span class="o">=</span> <span class="s2">&quot;bool&quot;</span>
+
+<div class="viewcode-block" id="FieldType.default_value">
+<a class="viewcode-back" href="../../../src.core.html#src.core.document.FieldType.default_value">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">default_value</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;str&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;int&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s2">&quot;float&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+            <span class="s2">&quot;bool&quot;</span><span class="p">:</span> <span class="kc">False</span>
+        <span class="p">}[</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="FieldType.to_python_type">
+<a class="viewcode-back" href="../../../src.core.html#src.core.document.FieldType.to_python_type">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_python_type</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;str&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+            <span class="s2">&quot;int&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+            <span class="s2">&quot;float&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+            <span class="s2">&quot;bool&quot;</span><span class="p">:</span> <span class="nb">bool</span>
+        <span class="p">}[</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="FieldType.to_milvus_type">
+<a class="viewcode-back" href="../../../src.core.html#src.core.document.FieldType.to_milvus_type">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_milvus_type</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;str&quot;</span><span class="p">:</span> <span class="n">DataType</span><span class="o">.</span><span class="n">VARCHAR</span><span class="p">,</span>
+            <span class="s2">&quot;int&quot;</span><span class="p">:</span> <span class="n">DataType</span><span class="o">.</span><span class="n">INT64</span><span class="p">,</span>
+            <span class="s2">&quot;float&quot;</span><span class="p">:</span> <span class="n">DataType</span><span class="o">.</span><span class="n">FLOAT</span><span class="p">,</span>
+            <span class="s2">&quot;bool&quot;</span><span class="p">:</span> <span class="n">DataType</span><span class="o">.</span><span class="n">BOOL</span>
+        <span class="p">}[</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">]</span></div>
+</div>
+
+
+
+<span class="c1"># --- Field object used in both content and metadata ---</span>
+<div class="viewcode-block" id="Field">
+<a class="viewcode-back" href="../../../src.core.html#src.core.document.Field">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Field</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A representation of a field in a document, used in both content and metadata.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        name (str): The name of the field (e.g., &quot;title&quot;, &quot;abstract&quot;).</span>
+<span class="sd">        contents (List[Any]): The values contained in the field (e.g., token list, raw strings).</span>
+<span class="sd">        max_len (int): The maximum length constraint for this field (used for truncation or padding).</span>
+<span class="sd">        type (FieldType): The type of the field, such as TEXT, KEYWORD, or TITLE.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">contents</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">max_len</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="nb">type</span><span class="p">:</span> <span class="n">FieldType</span>
+<div class="viewcode-block" id="Field.to_string">
+<a class="viewcode-back" href="../../../src.core.html#src.core.document.Field.to_string">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_string</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">contents</span><span class="p">))</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">type</span><span class="o">.</span><span class="n">value</span><span class="si">}</span><span class="s2">)&quot;</span></div>
+</div>
+
+
+<span class="c1"># --- Abstract document interface ---</span>
+<div class="viewcode-block" id="Document">
+<a class="viewcode-back" href="../../../src.core.html#src.core.document.Document">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Document</span><span class="p">:</span>
+    <span class="n">SCHEMA_INSTANCE</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="n">Self</span><span class="p">]</span>
+
+<div class="viewcode-block" id="Document.key">
+<a class="viewcode-back" href="../../../src.core.html#src.core.document.Document.key">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">key</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+
+<div class="viewcode-block" id="Document.metadata">
+<a class="viewcode-back" href="../../../src.core.html#src.core.document.Document.metadata">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Field</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+
+<div class="viewcode-block" id="Document.content">
+<a class="viewcode-back" href="../../../src.core.html#src.core.document.Document.content">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">content</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Field</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+
+<div class="viewcode-block" id="Document.metadata_schema">
+<a class="viewcode-back" href="../../../src.core.html#src.core.document.Document.metadata_schema">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">metadata_schema</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Field</span><span class="p">]:</span>
+        <span class="k">assert</span> <span class="bp">cls</span><span class="o">.</span><span class="n">SCHEMA_INSTANCE</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;Document schema instance is not initialized.&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">SCHEMA_INSTANCE</span><span class="o">.</span><span class="n">metadata</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="Document.content_schema">
+<a class="viewcode-back" href="../../../src.core.html#src.core.document.Document.content_schema">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">content_schema</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Field</span><span class="p">]:</span>
+        <span class="k">assert</span> <span class="bp">cls</span><span class="o">.</span><span class="n">SCHEMA_INSTANCE</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;Document schema instance is not initialized.&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">SCHEMA_INSTANCE</span><span class="o">.</span><span class="n">content</span><span class="p">()</span></div>
+
+    
+<div class="viewcode-block" id="Document.from_dataset">
+<a class="viewcode-back" href="../../../src.core.html#src.core.document.Document.from_dataset">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_dataset</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">dataset_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Type</span><span class="p">[</span><span class="s2">&quot;Document&quot;</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Factory method to gives the corresponding a Document class from a dataset.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">dataset_name</span> <span class="o">==</span> <span class="s2">&quot;ncl&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">NCLDocument</span>
+        <span class="k">elif</span> <span class="n">dataset_name</span> <span class="o">==</span> <span class="s2">&quot;litsearch&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">LitSearchDocument</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported dataset: </span><span class="si">{</span><span class="n">dataset_name</span><span class="si">}</span><span class="s2">. Supported datasets are &#39;ncl&#39; and &#39;litsearch&#39;.&quot;</span><span class="p">)</span></div>
+</div>
+
+
+<span class="c1"># --------------NCL Document -----------------</span>
+<span class="c1"># --- Info object for language-specific fields ---</span>
+<div class="viewcode-block" id="Info">
+<a class="viewcode-back" href="../../../src.core.html#src.core.document.Info">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Info</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Language-specific information for a document.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        title (Optional[str]): Title of the document in the specified language.</span>
+<span class="sd">        school (Optional[str]): Name of the university or institution.</span>
+<span class="sd">        dept (Optional[str]): Department or academic unit.</span>
+<span class="sd">        abstract (Optional[str]): Abstract or summary text.</span>
+<span class="sd">        authors (Optional[List[str]]): List of authors.</span>
+<span class="sd">        advisors (Optional[List[str]]): List of advisors or supervisors.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">title</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">school</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">dept</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">abstract</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">authors</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">advisors</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+
+<span class="c1"># --- NCLDocument concrete class ---</span>
+<div class="viewcode-block" id="NCLDocument">
+<a class="viewcode-back" href="../../../src.core.html#src.core.document.NCLDocument">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">NCLDocument</span><span class="p">(</span><span class="n">Document</span><span class="p">,</span> <span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A document representation for the NCL (National Central Library) dataset.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        SCHEMA_INSTANCE (ClassVar): Singleton instance used for schema binding or validation.</span>
+<span class="sd">        id (str): Unique identifier for the document.</span>
+<span class="sd">        year (Optional[int]): Graduation year of the thesis.</span>
+<span class="sd">        category (Optional[str]): Degree category (e.g., Master&#39;s, PhD).</span>
+<span class="sd">        chinese (Info): Language-specific metadata in Chinese.</span>
+<span class="sd">        english (Info): Language-specific metadata in English.</span>
+<span class="sd">        link (Optional[str]): URL link to the full thesis.</span>
+<span class="sd">        keywords (List[str]): Keywords associated with the document.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">SCHEMA_INSTANCE</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="s2">&quot;NCLDocument&quot;</span><span class="p">]</span>
+
+    <span class="nb">id</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">year</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">category</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">chinese</span><span class="p">:</span> <span class="n">Info</span>
+    <span class="n">english</span><span class="p">:</span> <span class="n">Info</span>
+    <span class="n">link</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">keywords</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+<div class="viewcode-block" id="NCLDocument.key">
+<a class="viewcode-back" href="../../../src.core.html#src.core.document.NCLDocument.key">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">key</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span></div>
+
+
+<div class="viewcode-block" id="NCLDocument.metadata">
+<a class="viewcode-back" href="../../../src.core.html#src.core.document.NCLDocument.metadata">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Field</span><span class="p">]:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">Field</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;year&quot;</span><span class="p">,</span> <span class="n">contents</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">year</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">year</span> <span class="k">else</span> <span class="p">[],</span> <span class="nb">type</span><span class="o">=</span><span class="n">FieldType</span><span class="o">.</span><span class="n">INTEGER</span><span class="p">,</span> <span class="n">max_len</span><span class="o">=</span><span class="mi">4</span><span class="p">),</span>
+            <span class="n">Field</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;category&quot;</span><span class="p">,</span> <span class="n">contents</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">category</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">category</span> <span class="k">else</span> <span class="p">[],</span> <span class="nb">type</span><span class="o">=</span><span class="n">FieldType</span><span class="o">.</span><span class="n">STRING</span><span class="p">,</span> <span class="n">max_len</span><span class="o">=</span><span class="mi">64</span><span class="p">),</span>
+            <span class="n">Field</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;link&quot;</span><span class="p">,</span> <span class="n">contents</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">link</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">link</span> <span class="k">else</span> <span class="p">[],</span> <span class="nb">type</span><span class="o">=</span><span class="n">FieldType</span><span class="o">.</span><span class="n">STRING</span><span class="p">,</span> <span class="n">max_len</span><span class="o">=</span><span class="mi">256</span><span class="p">),</span>
+            <span class="n">Field</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;keywords&quot;</span><span class="p">,</span> <span class="n">contents</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">keywords</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">FieldType</span><span class="o">.</span><span class="n">STRING</span><span class="p">,</span> <span class="n">max_len</span><span class="o">=</span><span class="mi">256</span><span class="p">),</span>
+            <span class="n">Field</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;school_chinese&quot;</span><span class="p">,</span> <span class="n">contents</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">chinese</span><span class="o">.</span><span class="n">school</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">chinese</span><span class="o">.</span><span class="n">school</span> <span class="k">else</span> <span class="p">[],</span> <span class="nb">type</span><span class="o">=</span><span class="n">FieldType</span><span class="o">.</span><span class="n">STRING</span><span class="p">,</span> <span class="n">max_len</span><span class="o">=</span><span class="mi">128</span><span class="p">),</span>
+            <span class="n">Field</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;school_english&quot;</span><span class="p">,</span> <span class="n">contents</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">english</span><span class="o">.</span><span class="n">school</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">english</span><span class="o">.</span><span class="n">school</span> <span class="k">else</span> <span class="p">[],</span> <span class="nb">type</span><span class="o">=</span><span class="n">FieldType</span><span class="o">.</span><span class="n">STRING</span><span class="p">,</span> <span class="n">max_len</span><span class="o">=</span><span class="mi">128</span><span class="p">),</span>
+            <span class="n">Field</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;dept_chinese&quot;</span><span class="p">,</span> <span class="n">contents</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">chinese</span><span class="o">.</span><span class="n">dept</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">chinese</span><span class="o">.</span><span class="n">dept</span> <span class="k">else</span> <span class="p">[],</span> <span class="nb">type</span><span class="o">=</span><span class="n">FieldType</span><span class="o">.</span><span class="n">STRING</span><span class="p">,</span> <span class="n">max_len</span><span class="o">=</span><span class="mi">128</span><span class="p">),</span>
+            <span class="n">Field</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;dept_english&quot;</span><span class="p">,</span> <span class="n">contents</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">english</span><span class="o">.</span><span class="n">dept</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">english</span><span class="o">.</span><span class="n">dept</span> <span class="k">else</span> <span class="p">[],</span> <span class="nb">type</span><span class="o">=</span><span class="n">FieldType</span><span class="o">.</span><span class="n">STRING</span><span class="p">,</span> <span class="n">max_len</span><span class="o">=</span><span class="mi">128</span><span class="p">),</span>
+            <span class="n">Field</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;authors_chinese&quot;</span><span class="p">,</span> <span class="n">contents</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">chinese</span><span class="o">.</span><span class="n">authors</span> <span class="ow">or</span> <span class="p">[],</span> <span class="nb">type</span><span class="o">=</span><span class="n">FieldType</span><span class="o">.</span><span class="n">STRING</span><span class="p">,</span> <span class="n">max_len</span><span class="o">=</span><span class="mi">256</span><span class="p">),</span>
+            <span class="n">Field</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;authors_english&quot;</span><span class="p">,</span> <span class="n">contents</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">english</span><span class="o">.</span><span class="n">authors</span> <span class="ow">or</span> <span class="p">[],</span> <span class="nb">type</span><span class="o">=</span><span class="n">FieldType</span><span class="o">.</span><span class="n">STRING</span><span class="p">,</span> <span class="n">max_len</span><span class="o">=</span><span class="mi">256</span><span class="p">),</span>
+            <span class="n">Field</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;advisors_chinese&quot;</span><span class="p">,</span> <span class="n">contents</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">chinese</span><span class="o">.</span><span class="n">advisors</span> <span class="ow">or</span> <span class="p">[],</span> <span class="nb">type</span><span class="o">=</span><span class="n">FieldType</span><span class="o">.</span><span class="n">STRING</span><span class="p">,</span> <span class="n">max_len</span><span class="o">=</span><span class="mi">256</span><span class="p">),</span>
+            <span class="n">Field</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;advisors_english&quot;</span><span class="p">,</span> <span class="n">contents</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">english</span><span class="o">.</span><span class="n">advisors</span> <span class="ow">or</span> <span class="p">[],</span> <span class="nb">type</span><span class="o">=</span><span class="n">FieldType</span><span class="o">.</span><span class="n">STRING</span><span class="p">,</span> <span class="n">max_len</span><span class="o">=</span><span class="mi">256</span><span class="p">),</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">data</span><span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="NCLDocument.content">
+<a class="viewcode-back" href="../../../src.core.html#src.core.document.NCLDocument.content">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">content</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Field</span><span class="p">]:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">Field</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;abstract_chinese&quot;</span><span class="p">,</span> <span class="n">contents</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">chinese</span><span class="o">.</span><span class="n">abstract</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">chinese</span><span class="o">.</span><span class="n">abstract</span> <span class="k">else</span> <span class="p">[],</span> <span class="nb">type</span><span class="o">=</span><span class="n">FieldType</span><span class="o">.</span><span class="n">STRING</span><span class="p">,</span> <span class="n">max_len</span><span class="o">=</span><span class="mi">1024</span><span class="p">),</span>
+            <span class="n">Field</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;abstract_english&quot;</span><span class="p">,</span> <span class="n">contents</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">english</span><span class="o">.</span><span class="n">abstract</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">english</span><span class="o">.</span><span class="n">abstract</span> <span class="k">else</span> <span class="p">[],</span> <span class="nb">type</span><span class="o">=</span><span class="n">FieldType</span><span class="o">.</span><span class="n">STRING</span><span class="p">,</span> <span class="n">max_len</span><span class="o">=</span><span class="mi">1024</span><span class="p">),</span>
+            <span class="n">Field</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;title_chinese&quot;</span><span class="p">,</span> <span class="n">contents</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">chinese</span><span class="o">.</span><span class="n">title</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">chinese</span><span class="o">.</span><span class="n">title</span> <span class="k">else</span> <span class="p">[],</span> <span class="nb">type</span><span class="o">=</span><span class="n">FieldType</span><span class="o">.</span><span class="n">STRING</span><span class="p">,</span> <span class="n">max_len</span><span class="o">=</span><span class="mi">256</span><span class="p">),</span>
+            <span class="n">Field</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;title_english&quot;</span><span class="p">,</span> <span class="n">contents</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">english</span><span class="o">.</span><span class="n">title</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">english</span><span class="o">.</span><span class="n">title</span> <span class="k">else</span> <span class="p">[],</span> <span class="nb">type</span><span class="o">=</span><span class="n">FieldType</span><span class="o">.</span><span class="n">STRING</span><span class="p">,</span> <span class="n">max_len</span><span class="o">=</span><span class="mi">256</span><span class="p">),</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">data</span><span class="p">}</span></div>
+</div>
+
+    
+<span class="c1"># --- Define the singleton schema instance ---</span>
+<span class="n">NCLDocument</span><span class="o">.</span><span class="n">SCHEMA_INSTANCE</span> <span class="o">=</span> <span class="n">NCLDocument</span><span class="p">(</span>
+    <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+    <span class="n">year</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">category</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">link</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">keywords</span><span class="o">=</span><span class="p">[],</span>
+    <span class="n">chinese</span><span class="o">=</span><span class="n">Info</span><span class="p">(),</span>
+    <span class="n">english</span><span class="o">=</span><span class="n">Info</span><span class="p">()</span>
+<span class="p">)</span>
+
+<span class="c1">#------------ LitSearch Document --------------</span>
+<div class="viewcode-block" id="LitSearchDocument">
+<a class="viewcode-back" href="../../../src.core.html#src.core.document.LitSearchDocument">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">LitSearchDocument</span><span class="p">(</span><span class="n">Document</span><span class="p">,</span> <span class="n">BaseModel</span><span class="p">):</span>
+    <span class="n">SCHEMA_INSTANCE</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="s2">&quot;LitSearchDocument&quot;</span><span class="p">]</span>
+
+    <span class="n">corpusid</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">externalids</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">title</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">abstract</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">authors</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">venue</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">year</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">pdfurl</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="LitSearchDocument.key">
+<a class="viewcode-back" href="../../../src.core.html#src.core.document.LitSearchDocument.key">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">key</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">corpusid</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="LitSearchDocument.metadata">
+<a class="viewcode-back" href="../../../src.core.html#src.core.document.LitSearchDocument.metadata">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Field</span><span class="p">]:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">Field</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;corpusid&quot;</span><span class="p">,</span> <span class="n">contents</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">corpusid</span><span class="p">],</span> <span class="nb">type</span><span class="o">=</span><span class="n">FieldType</span><span class="o">.</span><span class="n">INTEGER</span><span class="p">,</span> <span class="n">max_len</span><span class="o">=</span><span class="mi">16</span><span class="p">),</span>
+            <span class="n">Field</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;year&quot;</span><span class="p">,</span> <span class="n">contents</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">year</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">year</span> <span class="k">else</span> <span class="p">[],</span> <span class="nb">type</span><span class="o">=</span><span class="n">FieldType</span><span class="o">.</span><span class="n">INTEGER</span><span class="p">,</span> <span class="n">max_len</span><span class="o">=</span><span class="mi">4</span><span class="p">),</span>
+            <span class="n">Field</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;venue&quot;</span><span class="p">,</span> <span class="n">contents</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">venue</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">venue</span> <span class="k">else</span> <span class="p">[],</span> <span class="nb">type</span><span class="o">=</span><span class="n">FieldType</span><span class="o">.</span><span class="n">STRING</span><span class="p">,</span> <span class="n">max_len</span><span class="o">=</span><span class="mi">128</span><span class="p">),</span>
+            <span class="n">Field</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;authors&quot;</span><span class="p">,</span> <span class="n">contents</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">authors</span> <span class="ow">or</span> <span class="p">[],</span> <span class="nb">type</span><span class="o">=</span><span class="n">FieldType</span><span class="o">.</span><span class="n">STRING</span><span class="p">,</span> <span class="n">max_len</span><span class="o">=</span><span class="mi">128</span><span class="p">),</span>
+            <span class="n">Field</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;doi&quot;</span><span class="p">,</span> <span class="n">contents</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">externalids</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;doi&quot;</span><span class="p">)]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">externalids</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;doi&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="p">[],</span> <span class="nb">type</span><span class="o">=</span><span class="n">FieldType</span><span class="o">.</span><span class="n">STRING</span><span class="p">,</span> <span class="n">max_len</span><span class="o">=</span><span class="mi">128</span><span class="p">),</span>
+            <span class="n">Field</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;arxiv&quot;</span><span class="p">,</span> <span class="n">contents</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">externalids</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;arxiv&quot;</span><span class="p">)]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">externalids</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;arxiv&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="p">[],</span> <span class="nb">type</span><span class="o">=</span><span class="n">FieldType</span><span class="o">.</span><span class="n">STRING</span><span class="p">,</span> <span class="n">max_len</span><span class="o">=</span><span class="mi">64</span><span class="p">),</span>
+            <span class="n">Field</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;dblp&quot;</span><span class="p">,</span> <span class="n">contents</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">externalids</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;dblp&quot;</span><span class="p">)]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">externalids</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;dblp&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="p">[],</span> <span class="nb">type</span><span class="o">=</span><span class="n">FieldType</span><span class="o">.</span><span class="n">STRING</span><span class="p">,</span> <span class="n">max_len</span><span class="o">=</span><span class="mi">128</span><span class="p">),</span>
+            <span class="n">Field</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;pdfurl&quot;</span><span class="p">,</span> <span class="n">contents</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">pdfurl</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pdfurl</span> <span class="k">else</span> <span class="p">[],</span> <span class="nb">type</span><span class="o">=</span><span class="n">FieldType</span><span class="o">.</span><span class="n">STRING</span><span class="p">,</span> <span class="n">max_len</span><span class="o">=</span><span class="mi">256</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">data</span><span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="LitSearchDocument.content">
+<a class="viewcode-back" href="../../../src.core.html#src.core.document.LitSearchDocument.content">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">content</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Field</span><span class="p">]:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">Field</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;abstract&quot;</span><span class="p">,</span> <span class="n">contents</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">abstract</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">abstract</span> <span class="k">else</span> <span class="p">[],</span> <span class="nb">type</span><span class="o">=</span><span class="n">FieldType</span><span class="o">.</span><span class="n">STRING</span><span class="p">,</span> <span class="n">max_len</span><span class="o">=</span><span class="mi">2048</span><span class="p">),</span> 
+            <span class="n">Field</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;title&quot;</span><span class="p">,</span> <span class="n">contents</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">title</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">title</span> <span class="k">else</span> <span class="p">[],</span> <span class="nb">type</span><span class="o">=</span><span class="n">FieldType</span><span class="o">.</span><span class="n">STRING</span><span class="p">,</span> <span class="n">max_len</span><span class="o">=</span><span class="mi">256</span><span class="p">),</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">data</span><span class="p">}</span></div>
+</div>
+
+
+<span class="c1"># --- Define the singleton schema instance ---</span>
+<span class="n">LitSearchDocument</span><span class="o">.</span><span class="n">SCHEMA_INSTANCE</span> <span class="o">=</span> <span class="n">LitSearchDocument</span><span class="p">(</span>
+    <span class="n">corpusid</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+    <span class="n">title</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">abstract</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">authors</span><span class="o">=</span><span class="p">[],</span>
+    <span class="n">venue</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">year</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">pdfurl</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">externalids</span><span class="o">=</span><span class="p">{}</span>
+<span class="p">)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Jerome Tze-Hou Hsu, Wenjie Lu, Pinyi Li.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
