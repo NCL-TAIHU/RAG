@@ -208,12 +208,18 @@ Requires: Collection already exists.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="src.core.collection.CollectionOperator.buffered_insert">
 <span class="sig-name descname"><span class="pre">buffered_insert</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/src/core/collection.html#CollectionOperator.buffered_insert"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.core.collection.CollectionOperator.buffered_insert" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Inserts data into the collection in batches.</p>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="src.core.collection.CollectionOperator.search_dense">
 <span class="sig-name descname"><span class="pre">search_dense</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query_vector</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_fields</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">['pk']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/src/core/collection.html#CollectionOperator.search_dense"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.core.collection.CollectionOperator.search_dense" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Performs a dense vector search in the collection.
+query_vector: List[float], a dense vector to search for.
+limit: int, the maximum number of results to return.
+output_fields: List[str], fields to return in the results.
+expr: Optional[str], an expression to filter the results.</p>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="src.core.collection.CollectionOperator.search_hybrid">
@@ -225,7 +231,12 @@ alpha ∈ [0, 1]: higher = more weight on dense similarity.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="src.core.collection.CollectionOperator.search_sparse">
 <span class="sig-name descname"><span class="pre">search_sparse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query_vector</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">csr_array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_fields</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">['pk']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/src/core/collection.html#CollectionOperator.search_sparse"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.core.collection.CollectionOperator.search_sparse" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Performs a sparse vector search in the collection.
+query_vector: csr_array, a sparse vector to search for.
+limit: int, the maximum number of results to return.
+output_fields: List[str], fields to return in the results.
+expr: Optional[str], an expression to filter the results.</p>
+</dd></dl>
 
 </dd></dl>
 
@@ -955,17 +966,9 @@ Iteratively returns Documents one by one.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="src.core.embedder.BGEM3Embedder.embed">
 <span class="sig-name descname"><span class="pre">embed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">texts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">csr_array</span></span></span><a class="reference internal" href="_modules/src/core/embedder.html#BGEM3Embedder.embed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.core.embedder.BGEM3Embedder.embed" title="Link to this definition"></a></dt>
-<dd><p>Embeds a list of texts into a list of sparse vectors.
+<dd><p>Embeds a list of texts into sparse vectors.
 :param texts: A single text or a list of texts to be embedded.
-:return: A list of dictionaries representing the sparse vectors of the embedded texts.
-A dictionary should have the following structure:
-{</p>
-<blockquote>
-<div><p>“indices”: List[int],  # indices of the non-zero elements in the sparse vector
-“values”: List[float],  # learned importance
-“dim”: 384000 # total dimension of the sparse vector</p>
-</div></blockquote>
-<p>}</p>
+:return: A sparse matrix representing the embedded texts.</p>
 </dd></dl>
 
 </dd></dl>
@@ -1000,17 +1003,9 @@ This class is specifically designed to work with Milvus for storing and retrievi
 <dl class="py method">
 <dt class="sig sig-object py" id="src.core.embedder.MilvusBGEM3Embedder.embed">
 <span class="sig-name descname"><span class="pre">embed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">texts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">csr_array</span></span></span><a class="reference internal" href="_modules/src/core/embedder.html#MilvusBGEM3Embedder.embed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.core.embedder.MilvusBGEM3Embedder.embed" title="Link to this definition"></a></dt>
-<dd><p>Embeds a list of texts into a list of sparse vectors.
+<dd><p>Embeds a list of texts into sparse vectors.
 :param texts: A single text or a list of texts to be embedded.
-:return: A list of dictionaries representing the sparse vectors of the embedded texts.
-A dictionary should have the following structure:
-{</p>
-<blockquote>
-<div><p>“indices”: List[int],  # indices of the non-zero elements in the sparse vector
-“values”: List[float],  # learned importance
-“dim”: 384000 # total dimension of the sparse vector</p>
-</div></blockquote>
-<p>}</p>
+:return: A sparse matrix representing the embedded texts.</p>
 </dd></dl>
 
 </dd></dl>
@@ -1022,17 +1017,9 @@ A dictionary should have the following structure:
 <dl class="py method">
 <dt class="sig sig-object py" id="src.core.embedder.SparseEmbedder.embed">
 <span class="sig-name descname"><span class="pre">embed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">texts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">csr_array</span></span></span><a class="reference internal" href="_modules/src/core/embedder.html#SparseEmbedder.embed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.core.embedder.SparseEmbedder.embed" title="Link to this definition"></a></dt>
-<dd><p>Embeds a list of texts into a list of sparse vectors.
+<dd><p>Embeds a list of texts into sparse vectors.
 :param texts: A single text or a list of texts to be embedded.
-:return: A list of dictionaries representing the sparse vectors of the embedded texts.
-A dictionary should have the following structure:
-{</p>
-<blockquote>
-<div><p>“indices”: List[int],  # indices of the non-zero elements in the sparse vector
-“values”: List[float],  # learned importance
-“dim”: 384000 # total dimension of the sparse vector</p>
-</div></blockquote>
-<p>}</p>
+:return: A sparse matrix representing the embedded texts.</p>
 </dd></dl>
 
 </dd></dl>
@@ -1044,7 +1031,8 @@ A dictionary should have the following structure:
 <dt class="sig sig-object py" id="src.core.filter.Filter">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">src.core.filter.</span></span><span class="sig-name descname"><span class="pre">Filter</span></span><a class="reference internal" href="_modules/src/core/filter.html#Filter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.core.filter.Filter" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
-<p>Abstract base for statically declared filters.
+<p>Base class for statically declared filters.
+Filters are dependent on specific document types and are used to filter search results.
 Subclasses should override <cite>must_fields()</cite> and <cite>filter_fields()</cite> manually.
 All fields should be <cite>Optional[List[…]]</cite> even if the underlying document field is singular.
 This unifies the semantics: all filters represent set-based inclusion or exclusion logic.</p>
@@ -1252,8 +1240,7 @@ This method deletes all files in the base path.</p>
 <dt class="sig sig-object py" id="src.core.library.Library">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">src.core.library.</span></span><span class="sig-name descname"><span class="pre">Library</span></span><a class="reference internal" href="_modules/src/core/library.html#Library"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.core.library.Library" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>abstract class.
-stores and retrieves documents based on their IDs.</p>
+<p>A base class that stores and retrieves documents based on their IDs.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="src.core.library.Library.clear">
 <span class="sig-name descname"><span class="pre">clear</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/src/core/library.html#Library.clear"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.core.library.Library.clear" title="Link to this definition"></a></dt>
@@ -1285,6 +1272,7 @@ This method should be overridden by subclasses if needed.</p>
 <dt class="sig sig-object py" id="src.core.llm.Agent">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">src.core.llm.</span></span><span class="sig-name descname"><span class="pre">Agent</span></span><a class="reference internal" href="_modules/src/core/llm.html#Agent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.core.llm.Agent" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>A base class for agents that interact with LLMs (Large Language Models).</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="src.core.llm.Agent.from_TaiwanAIRAP">
 <em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_TaiwanAIRAP</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#src.core.llm.Agent" title="src.core.llm.Agent"><span class="pre">Agent</span></a></span></span><a class="reference internal" href="_modules/src/core/llm.html#Agent.from_TaiwanAIRAP"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.core.llm.Agent.from_TaiwanAIRAP" title="Link to this definition"></a></dt>
@@ -1411,6 +1399,9 @@ This method should be overridden by subclasses if needed.</p>
 <dt class="sig sig-object py" id="src.core.manager.Manager">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">src.core.manager.</span></span><span class="sig-name descname"><span class="pre">Manager</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">library</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#src.core.library.Library" title="src.core.library.Library"><span class="pre">Library</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">search_engines</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#src.core.search_engine.SearchEngine" title="src.core.search_engine.SearchEngine"><span class="pre">SearchEngine</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">router_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'simple'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/src/core/manager.html#Manager"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.core.manager.Manager" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Operator class for managing a library and multiple search engines.
+Search engines are routed based on the filter criteria, returning a list of ids.
+The library is used to retrieve the actual documents based on these ids.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="src.core.manager.Manager.fetch">
 <span class="sig-name descname"><span class="pre">fetch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#src.core.filter.Filter" title="src.core.filter.Filter"><span class="pre">Filter</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#src.core.document.Document" title="src.core.document.Document"><span class="pre">Document</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/src/core/manager.html#Manager.fetch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.core.manager.Manager.fetch" title="Link to this definition"></a></dt>
@@ -1536,11 +1527,6 @@ This method should be overridden by subclasses if needed.</p>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="src.core.search_engine.ElasticSearchEngine.get_query">
-<span class="sig-name descname"><span class="pre">get_query</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#src.core.filter.Filter" title="src.core.filter.Filter"><span class="pre">Filter</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span></span></span><a class="reference internal" href="_modules/src/core/search_engine.html#ElasticSearchEngine.get_query"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.core.search_engine.ElasticSearchEngine.get_query" title="Link to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="src.core.search_engine.ElasticSearchEngine.insert">
 <span class="sig-name descname"><span class="pre">insert</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">docs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#src.core.document.Document" title="src.core.document.Document"><span class="pre">Document</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/src/core/search_engine.html#ElasticSearchEngine.insert"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.core.search_engine.ElasticSearchEngine.insert" title="Link to this definition"></a></dt>
 <dd><p>Inserts a list of documents into the database.
@@ -1625,11 +1611,6 @@ This method should be called before any other operations.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="src.core.search_engine.MilvusSearchEngine.filter_cls">
 <span class="sig-name descname"><span class="pre">filter_cls</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#src.core.filter.Filter" title="src.core.filter.Filter"><span class="pre">Filter</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#src.core.search_engine.MilvusSearchEngine.filter_cls" title="Link to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="src.core.search_engine.MilvusSearchEngine.get_query">
-<span class="sig-name descname"><span class="pre">get_query</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#src.core.filter.Filter" title="src.core.filter.Filter"><span class="pre">Filter</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="reference internal" href="_modules/src/core/search_engine.html#MilvusSearchEngine.get_query"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.core.search_engine.MilvusSearchEngine.get_query" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">

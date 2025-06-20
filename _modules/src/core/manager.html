@@ -82,6 +82,11 @@
 <div class="viewcode-block" id="Manager">
 <a class="viewcode-back" href="../../../src.core.html#src.core.manager.Manager">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Manager</span><span class="p">:</span> 
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Operator class for managing a library and multiple search engines.</span>
+<span class="sd">    Search engines are routed based on the filter criteria, returning a list of ids. </span>
+<span class="sd">    The library is used to retrieve the actual documents based on these ids.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">library</span><span class="p">:</span> <span class="n">Library</span><span class="p">,</span> <span class="n">search_engines</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">SearchEngine</span><span class="p">],</span> <span class="n">router_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;simple&quot;</span><span class="p">):</span> 
         <span class="bp">self</span><span class="o">.</span><span class="n">library</span><span class="p">:</span> <span class="n">Library</span> <span class="o">=</span> <span class="n">library</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">search_engines</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">SearchEngine</span><span class="p">]</span> <span class="o">=</span> <span class="n">search_engines</span>

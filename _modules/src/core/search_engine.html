@@ -280,9 +280,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">operator</span><span class="o">.</span><span class="n">buffered_insert</span><span class="p">([</span><span class="n">insert_dict</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">field_names</span><span class="p">()])</span></div>
 
 
-<div class="viewcode-block" id="MilvusSearchEngine.get_query">
-<a class="viewcode-back" href="../../../src.core.html#src.core.search_engine.MilvusSearchEngine.get_query">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">get_query</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">filter</span><span class="p">:</span> <span class="n">Filter</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_query</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">filter</span><span class="p">:</span> <span class="n">Filter</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
         <span class="n">clauses</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">schema_map</span> <span class="o">=</span> <span class="nb">filter</span><span class="o">.</span><span class="n">_doc_cls_</span><span class="o">.</span><span class="n">metadata_schema</span><span class="p">()</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;milvus does not support must fields, only filter fields&quot;</span><span class="p">)</span>
@@ -299,15 +297,14 @@
 
                 <span class="n">clauses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">field</span><span class="si">}</span><span class="s2"> in [</span><span class="si">{</span><span class="n">formatted</span><span class="si">}</span><span class="s2">]&quot;</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="s2">&quot; and &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">clauses</span><span class="p">)</span> <span class="k">if</span> <span class="n">clauses</span> <span class="k">else</span> <span class="kc">None</span></div>
-
+        <span class="k">return</span> <span class="s2">&quot; and &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">clauses</span><span class="p">)</span> <span class="k">if</span> <span class="n">clauses</span> <span class="k">else</span> <span class="kc">None</span>
 
 
 <div class="viewcode-block" id="MilvusSearchEngine.search">
 <a class="viewcode-back" href="../../../src.core.html#src.core.search_engine.MilvusSearchEngine.search">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">search</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">filter</span><span class="p">:</span> <span class="n">Filter</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
         <span class="n">dense_vector</span><span class="p">,</span> <span class="n">sparse_vector</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embed_query</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
-        <span class="n">expr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_query</span><span class="p">(</span><span class="nb">filter</span><span class="p">)</span>
+        <span class="n">expr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_query</span><span class="p">(</span><span class="nb">filter</span><span class="p">)</span>
         <span class="n">results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">operator</span><span class="o">.</span><span class="n">search_hybrid</span><span class="p">(</span>
             <span class="n">dense_vector</span><span class="o">=</span><span class="n">dense_vector</span><span class="p">,</span>
             <span class="n">sparse_vector</span><span class="o">=</span><span class="n">sparse_vector</span><span class="p">,</span>
@@ -381,9 +378,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">es</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">es_index</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="n">doc</span><span class="o">.</span><span class="n">key</span><span class="p">(),</span> <span class="n">body</span><span class="o">=</span><span class="n">body</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="ElasticSearchEngine.get_query">
-<a class="viewcode-back" href="../../../src.core.html#src.core.search_engine.ElasticSearchEngine.get_query">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">get_query</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">filter</span><span class="p">:</span> <span class="n">Filter</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_query</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">filter</span><span class="p">:</span> <span class="n">Filter</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
         <span class="n">must_clauses</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">filter_clauses</span> <span class="o">=</span> <span class="p">[]</span>
 
@@ -407,13 +402,12 @@
                     <span class="s2">&quot;filter&quot;</span><span class="p">:</span> <span class="n">filter_clauses</span>
                 <span class="p">}</span>
             <span class="p">}</span>
-        <span class="p">}</span></div>
-
+        <span class="p">}</span>
 
 <div class="viewcode-block" id="ElasticSearchEngine.search">
 <a class="viewcode-back" href="../../../src.core.html#src.core.search_engine.ElasticSearchEngine.search">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">search</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">filter</span><span class="p">:</span> <span class="n">Filter</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10000</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-        <span class="n">es_query</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_query</span><span class="p">(</span><span class="nb">filter</span><span class="p">)</span>
+        <span class="n">es_query</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_query</span><span class="p">(</span><span class="nb">filter</span><span class="p">)</span>
         <span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">es</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">es_index</span><span class="p">,</span> <span class="n">body</span><span class="o">=</span><span class="n">es_query</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">limit</span><span class="p">)</span>
         <span class="k">return</span> <span class="p">[</span><span class="n">hit</span><span class="p">[</span><span class="s2">&quot;_id&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">hit</span> <span class="ow">in</span> <span class="n">response</span><span class="p">[</span><span class="s2">&quot;hits&quot;</span><span class="p">][</span><span class="s2">&quot;hits&quot;</span><span class="p">]]</span></div>
 

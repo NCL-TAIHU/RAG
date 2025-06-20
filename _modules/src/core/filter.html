@@ -80,12 +80,12 @@
 <a class="viewcode-back" href="../../../src.core.html#src.core.filter.Filter">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Filter</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Abstract base for statically declared filters.</span>
+<span class="sd">    Base class for statically declared filters.</span>
+<span class="sd">    Filters are dependent on specific document types and are used to filter search results.</span>
 <span class="sd">    Subclasses should override `must_fields()` and `filter_fields()` manually.</span>
 <span class="sd">    All fields should be `Optional[List[...]]` even if the underlying document field is singular.</span>
 <span class="sd">    This unifies the semantics: all filters represent set-based inclusion or exclusion logic.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-
     <span class="c1"># The document class to validate against</span>
     <span class="n">_doc_cls_</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="n">Type</span><span class="p">[</span><span class="s2">&quot;Document&quot;</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">EMPTY</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="s2">&quot;Filter&quot;</span><span class="p">]</span>

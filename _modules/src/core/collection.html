@@ -96,7 +96,7 @@
     <span class="n">dtype</span><span class="p">:</span> <span class="n">DataType</span>
     <span class="n">is_primary</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="n">max_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10000</span>
-    <span class="n">dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># Only for vector fields</span>
+    <span class="n">dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span>  
     <span class="n">is_partition_key</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="n">default_value</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span></div>
 
@@ -220,7 +220,9 @@
 <div class="viewcode-block" id="CollectionOperator.buffered_insert">
 <a class="viewcode-back" href="../../../src.core.html#src.core.collection.CollectionOperator.buffered_insert">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">buffered_insert</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">]):</span>
-        <span class="c1">#all the lists in data should have the same length</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Inserts data into the collection in batches.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">field</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">data</span><span class="p">):</span> 
             <span class="k">if</span> <span class="n">field</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> 
                 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Field </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> is None&quot;</span><span class="p">)</span>
@@ -239,6 +241,13 @@
             <span class="n">output_fields</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;pk&quot;</span><span class="p">],</span> 
             <span class="n">expr</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Performs a dense vector search in the collection.</span>
+<span class="sd">        query_vector: List[float], a dense vector to search for.</span>
+<span class="sd">        limit: int, the maximum number of results to return.</span>
+<span class="sd">        output_fields: List[str], fields to return in the results.</span>
+<span class="sd">        expr: Optional[str], an expression to filter the results.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">collection</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
         <span class="n">search_params</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;metric_type&quot;</span><span class="p">:</span> <span class="s2">&quot;IP&quot;</span><span class="p">,</span> <span class="s2">&quot;params&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;nprobe&quot;</span><span class="p">:</span> <span class="mi">10</span><span class="p">}}</span>
         <span class="n">results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">collection</span><span class="o">.</span><span class="n">search</span><span class="p">(</span>
@@ -261,6 +270,13 @@
             <span class="n">output_fields</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;pk&quot;</span><span class="p">],</span> 
             <span class="n">expr</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="p">):</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Performs a sparse vector search in the collection.</span>
+<span class="sd">        query_vector: csr_array, a sparse vector to search for.</span>
+<span class="sd">        limit: int, the maximum number of results to return.</span>
+<span class="sd">        output_fields: List[str], fields to return in the results.</span>
+<span class="sd">        expr: Optional[str], an expression to filter the results.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">collection</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
         <span class="n">search_params</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;metric_type&quot;</span><span class="p">:</span> <span class="s2">&quot;IP&quot;</span><span class="p">,</span> <span class="s2">&quot;params&quot;</span><span class="p">:</span> <span class="p">{}}</span>
         <span class="n">results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">collection</span><span class="o">.</span><span class="n">search</span><span class="p">(</span>
