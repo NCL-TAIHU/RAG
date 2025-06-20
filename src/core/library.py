@@ -6,8 +6,7 @@ import logging
 logger = logging.getLogger(__name__)
 class Library: 
     '''
-    abstract class. 
-    stores and retrieves documents based on their IDs.
+    A base class that stores and retrieves documents based on their IDs.
     '''
     def clear(self) -> None: 
         """

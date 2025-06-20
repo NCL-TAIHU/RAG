@@ -32,15 +32,9 @@ class DenseEmbedder:
 class SparseEmbedder:
     def embed(self, texts: List[str]) -> csr_array:
         """
-        Embeds a list of texts into a list of sparse vectors.
+        Embeds a list of texts into sparse vectors.
         :param texts: A single text or a list of texts to be embedded.
-        :return: A list of dictionaries representing the sparse vectors of the embedded texts.
-        A dictionary should have the following structure:
-        {
-            "indices": List[int],  # indices of the non-zero elements in the sparse vector
-            "values": List[float],  # learned importance
-            "dim": 384000 # total dimension of the sparse vector
-        }
+        :return: A sparse matrix representing the embedded texts.
         """
         raise NotImplementedError("This method should be overridden by subclasses.")
     

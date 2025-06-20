@@ -58,6 +58,9 @@ class LLMConfig(BaseModel):
             raise ValueError(f"Unsupported model name: {model_name}. Please provide a valid model name.")
 
 class Agent: 
+    """
+    A base class for agents that interact with LLMs (Large Language Models).
+    """
     def generate(self, prompt: str) -> str:
         """
         Generates a response from the LLM based on the provided prompt.

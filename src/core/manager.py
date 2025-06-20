@@ -9,6 +9,11 @@ import logging
 logger = logging.getLogger(__name__)
 
 class Manager: 
+    """
+    Operator class for managing a library and multiple search engines.
+    Search engines are routed based on the filter criteria, returning a list of ids. 
+    The library is used to retrieve the actual documents based on these ids.
+    """
     def __init__(self, library: Library, search_engines: List[SearchEngine], router_name: str = "simple"): 
         self.library: Library = library
         self.search_engines: List[SearchEngine] = search_engines

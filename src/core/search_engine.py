@@ -165,7 +165,7 @@ class MilvusSearchEngine(SearchEngine):
 
         self.operator.buffered_insert([insert_dict[k] for k in self.config.field_names()])
 
-    def get_query(self, filter: Filter) -> Optional[str]:
+    def _get_query(self, filter: Filter) -> Optional[str]:
         clauses = []
         schema_map = filter._doc_cls_.metadata_schema()
         logger.debug("milvus does not support must fields, only filter fields")
@@ -187,7 +187,7 @@ class MilvusSearchEngine(SearchEngine):
 
     def search(self, query: str, filter: Filter, limit: int = 10) -> List[str]:
         dense_vector, sparse_vector = self.embed_query(query)
-        expr = self.get_query(filter)
+        expr = self._get_query(filter)
         results = self.operator.search_hybrid(
             dense_vector=dense_vector,
             sparse_vector=sparse_vector,
@@ -248,7 +248,7 @@ class ElasticSearchEngine(SearchEngine):
             }
             self.es.index(index=self.es_index, id=doc.key(), body=body)
 
-    def get_query(self, filter: Filter) -> Dict:
+    def _get_query(self, filter: Filter) -> Dict:
         must_clauses = []
         filter_clauses = []
 
@@ -275,7 +275,7 @@ class ElasticSearchEngine(SearchEngine):
         }
 
     def search(self, query: str, filter: Filter, limit: int = 10000) -> List[str]:
-        es_query = self.get_query(filter)
+        es_query = self._get_query(filter)
         response = self.es.search(index=self.es_index, body=es_query, size=limit)
         return [hit["_id"] for hit in response["hits"]["hits"]]
 

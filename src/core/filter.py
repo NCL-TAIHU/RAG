@@ -7,12 +7,12 @@ from src.core.document import Document, NCLDocument, LitSearchDocument
 
 class Filter(BaseModel):
     """
-    Abstract base for statically declared filters.
+    Base class for statically declared filters.
+    Filters are dependent on specific document types and are used to filter search results.
     Subclasses should override `must_fields()` and `filter_fields()` manually.
     All fields should be `Optional[List[...]]` even if the underlying document field is singular.
     This unifies the semantics: all filters represent set-based inclusion or exclusion logic.
     """
-
     # The document class to validate against
     _doc_cls_: ClassVar[Optional[Type["Document"]]] = None
     EMPTY: ClassVar["Filter"]

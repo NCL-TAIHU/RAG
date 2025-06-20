@@ -23,7 +23,7 @@ class FieldConfig(BaseModel):
     dtype: DataType
     is_primary: bool = False
     max_length: int = 10000
-    dim: int = None  # Only for vector fields
+    dim: int = None  
     is_partition_key: bool = False
     default_value: str = None
 
@@ -106,7 +106,9 @@ class CollectionOperator:
         self.buffer_size = 32  # Default buffer size for batch insertions
 
     def buffered_insert(self, data: list[list]):
-        #all the lists in data should have the same length
+        '''
+        Inserts data into the collection in batches.
+        '''
         for i, field in enumerate(data): 
             if field is None: 
                 print(f"Field {i} is None")
@@ -122,6 +124,13 @@ class CollectionOperator:
             output_fields: List[str] = ["pk"], 
             expr: Optional[str] = None
         ):
+        '''
+        Performs a dense vector search in the collection.
+        query_vector: List[float], a dense vector to search for.
+        limit: int, the maximum number of results to return.
+        output_fields: List[str], fields to return in the results.
+        expr: Optional[str], an expression to filter the results.
+        '''
         self.collection.load()
         search_params = {"metric_type": "IP", "params": {"nprobe": 10}}
         results = self.collection.search(
@@ -141,6 +150,13 @@ class CollectionOperator:
             output_fields: List[str] = ["pk"], 
             expr: Optional[str] = None
         ):
+        '''
+        Performs a sparse vector search in the collection.
+        query_vector: csr_array, a sparse vector to search for.
+        limit: int, the maximum number of results to return.
+        output_fields: List[str], fields to return in the results.
+        expr: Optional[str], an expression to filter the results.
+        '''
         self.collection.load()
         search_params = {"metric_type": "IP", "params": {}}
         results = self.collection.search(
