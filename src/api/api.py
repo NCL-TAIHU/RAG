@@ -11,7 +11,7 @@ from enum import Enum
 # Add the project root directory to Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from app import SearchApp
+from src.main.app import SearchApp
 from src.core.data import DataLoader
 from src.core.library import InMemoryLibrary
 from src.core.embedder import BGEM3Embedder, AutoModelEmbedder

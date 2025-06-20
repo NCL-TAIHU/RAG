@@ -6,7 +6,6 @@ import yaml
 from datasets import load_dataset
 from tqdm import tqdm
 from src.core.util import coalesce
-config = yaml.safe_load(open("config/data.yml", "r"))
 
 class DataLoader: 
     def load(self, *args, **kwargs) -> Iterator[List[Document]]:
@@ -30,6 +29,7 @@ class DataLoader:
         """
         Factory method to return a dataset-specific DataLoader.
         """
+        config = yaml.safe_load(open("config/data.yml", "r"))
         if dataset == "history":
             raise NotImplementedError("Arxiv dataset loader is not implemented yet.")
             base_path = config[dataset]['path']
@@ -97,16 +97,16 @@ class PathsDataLoader(DataLoader):
 
     def load(self):
         for doc in self.stream(): 
-            yield from self.handle(doc)
-        yield from self.flush()
+            yield from self._handle(doc)
+        yield from self._flush()
 
-    def handle(self, document) -> Iterator[List[Document]]:
+    def _handle(self, document) -> Iterator[List[Document]]:
         #yields document batch if the buffer size is reached
         self.documents.append(document)
         if len(self.documents) >= self.buffer_size:
-            yield from self.flush()
+            yield from self._flush()
 
-    def flush(self) -> Iterator[List[Document]]:
+    def _flush(self) -> Iterator[List[Document]]:
         # yields remaining documents if any
         if self.documents:
             yield self.documents
@@ -114,6 +114,13 @@ class PathsDataLoader(DataLoader):
 
 class NCLDataLoader(DataLoader):
     def __init__(self, base_path: str, buffer_size: int = 64):
+        """
+        Initializes the NCLDataLoader.
+
+        Args:
+            base_path (str): Path to the directory containing .jsonl files.
+            buffer_size (int, optional): Number of documents per batch. Defaults to 64.
+        """
         self.base_path = base_path
         self.json_paths = [os.path.join(base_path, f) for f in os.listdir(base_path) if f.endswith('.jsonl')]
         self.buffer_size = buffer_size
@@ -155,15 +162,15 @@ class NCLDataLoader(DataLoader):
 
     def load(self) -> Iterator[List[Document]]:
         for doc in self.stream():
-            yield from self.handle(doc)
-        yield from self.flush()
+            yield from self._handle(doc)
+        yield from self._flush()
 
-    def handle(self, document: Document) -> Iterator[List[Document]]:
+    def _handle(self, document: Document) -> Iterator[List[Document]]:
         self.documents.append(document)
         if len(self.documents) >= self.buffer_size:
-            yield from self.flush()
+            yield from self._flush()
 
-    def flush(self) -> Iterator[List[Document]]:
+    def _flush(self) -> Iterator[List[Document]]:
         if self.documents:
             yield self.documents
             self.documents = []
@@ -172,6 +179,12 @@ class NCLDataLoader(DataLoader):
 
 class LitSearchDataLoader(DataLoader):
     def __init__(self, buffer_size: int = 64):
+        """
+        Initializes the LitSearchDataLoader.
+
+        Args:
+            buffer_size (int): Number of documents per batch. Defaults to 64.
+        """
         self.buffer_size = buffer_size
         self.documents: List[Document] = []
         self.dataset = load_dataset("princeton-nlp/LitSearch", "corpus_s2orc", split="full")
@@ -182,9 +195,9 @@ class LitSearchDataLoader(DataLoader):
             annotations = content.get("annotations", {})
 
             text = content.get("text", "")
-            title = self.extract_span(text, annotations, "title")
-            abstract = self.extract_span(text, annotations, "abstract")
-            authors = self.extract_list_of_spans(text, annotations, "author")
+            title = self._extract_span(text, annotations, "title")
+            abstract = self._extract_span(text, annotations, "abstract")
+            authors = self._extract_list_of_spans(text, annotations, "author")
 
             #print(entry)
             try: 
@@ -206,7 +219,7 @@ class LitSearchDataLoader(DataLoader):
             
             yield doc
 
-    def extract_span(self, text: str, annotations: Dict[str, str], key: str) -> str:
+    def _extract_span(self, text: str, annotations: Dict[str, str], key: str) -> str:
         """Extract the first span of annotated text."""
         try:
             spans = json.loads(annotations.get(key, "[]"))
@@ -217,8 +230,8 @@ class LitSearchDataLoader(DataLoader):
             pass
         return ""
 
-    def extract_list_of_spans(self, text: str, annotations: Dict[str, str], key: str) -> List[str]:
-        """Extract all spans of annotated text."""
+    def _extract_list_of_spans(self, text: str, annotations: Dict[str, str], key: str) -> List[str]:
+        """_extract all spans of annotated text."""
         try:
             spans = json.loads(annotations.get(key, "[]"))
             return [text[span["start"]:span["end"]] for span in spans]
@@ -227,15 +240,15 @@ class LitSearchDataLoader(DataLoader):
 
     def load(self) -> Iterator[List[Document]]:
         for doc in self.stream():
-            yield from self.handle(doc)
-        yield from self.flush()
+            yield from self._handle(doc)
+        yield from self._flush()
 
-    def handle(self, document: Document) -> Iterator[List[Document]]:
+    def _handle(self, document: Document) -> Iterator[List[Document]]:
         self.documents.append(document)
         if len(self.documents) >= self.buffer_size:
-            yield from self.flush()
+            yield from self._flush()
 
-    def flush(self) -> Iterator[List[Document]]:
+    def _flush(self) -> Iterator[List[Document]]:
         if self.documents:
             yield self.documents
             self.documents = []

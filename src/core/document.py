@@ -39,6 +39,15 @@ class FieldType(str, Enum):
 
 # --- Field object used in both content and metadata ---
 class Field(BaseModel):
+    """
+    A representation of a field in a document, used in both content and metadata.
+
+    Attributes:
+        name (str): The name of the field (e.g., "title", "abstract").
+        contents (List[Any]): The values contained in the field (e.g., token list, raw strings).
+        max_len (int): The maximum length constraint for this field (used for truncation or padding).
+        type (FieldType): The type of the field, such as TEXT, KEYWORD, or TITLE.
+    """
     name: str
     contents: List[Any] = []
     max_len: int
@@ -84,6 +93,17 @@ class Document:
 # --------------NCL Document -----------------
 # --- Info object for language-specific fields ---
 class Info(BaseModel):
+    """
+    Language-specific information for a document.
+
+    Attributes:
+        title (Optional[str]): Title of the document in the specified language.
+        school (Optional[str]): Name of the university or institution.
+        dept (Optional[str]): Department or academic unit.
+        abstract (Optional[str]): Abstract or summary text.
+        authors (Optional[List[str]]): List of authors.
+        advisors (Optional[List[str]]): List of advisors or supervisors.
+    """
     title: Optional[str] = None
     school: Optional[str] = None
     dept: Optional[str] = None
@@ -93,6 +113,20 @@ class Info(BaseModel):
 
 # --- NCLDocument concrete class ---
 class NCLDocument(Document, BaseModel):
+    """
+    A document representation for the NCL (National Central Library) dataset.
+
+    Attributes:
+        SCHEMA_INSTANCE (ClassVar): Singleton instance used for schema binding or validation.
+        id (str): Unique identifier for the document.
+        year (Optional[int]): Graduation year of the thesis.
+        category (Optional[str]): Degree category (e.g., Master's, PhD).
+        chinese (Info): Language-specific metadata in Chinese.
+        english (Info): Language-specific metadata in English.
+        link (Optional[str]): URL link to the full thesis.
+        keywords (List[str]): Keywords associated with the document.
+    """
+
     SCHEMA_INSTANCE: ClassVar["NCLDocument"]
 
     id: str

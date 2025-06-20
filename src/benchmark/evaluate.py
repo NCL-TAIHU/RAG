@@ -2,7 +2,7 @@
 evaluates a milvus collection with a list of queries and expected results.
 The benchmark must be built on the same data as the collection, so that the correct answer exists in the collection.
 '''
-from app import SearchApp
+from src.main.app import SearchApp
 from src.core.data import DataLoader, Sampler, PrefixSampler
 from src.benchmark.io import BenchmarkFactory, save_report
 from src.benchmark.entity import Benchmark, Report
