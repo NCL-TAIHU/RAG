@@ -1,0 +1,186 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>src.core.prompt &mdash; taihu 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            taihu
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">API Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">src</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">taihu</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">src.core.prompt</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for src.core.prompt</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">src.core.document</span><span class="w"> </span><span class="kn">import</span> <span class="n">Document</span>
+
+<div class="viewcode-block" id="PromptBuilder">
+<a class="viewcode-back" href="../../../src.core.html#src.core.prompt.PromptBuilder">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PromptBuilder</span><span class="p">():</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">system_prompt</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">system_prompt</span> <span class="o">=</span> <span class="n">system_prompt</span> <span class="ow">or</span> <span class="s2">&quot;&quot;&quot;你是一個專業的學術研究助手。你的任務是分析文獻並提供有價值的見解。請確保回答簡潔、完整且不重複。&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">user_prompt</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">retrieval_results</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assistant_prompt</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">history</span> <span class="o">=</span> <span class="p">[]</span>
+
+<div class="viewcode-block" id="PromptBuilder.from_default">
+<a class="viewcode-back" href="../../../src.core.html#src.core.prompt.PromptBuilder.from_default">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_default</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;使用默認系統提示創建一個新的 PromptBuilder 實例&quot;&quot;&quot;</span>
+        <span class="n">default_system_prompt</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;你是一個專業的學術研究助手。你的任務是分析文獻並提供有價值的見解。請確保回答簡潔、完整且不重複。&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">system_prompt</span><span class="o">=</span><span class="n">default_system_prompt</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="PromptBuilder.add_user_message">
+<a class="viewcode-back" href="../../../src.core.html#src.core.prompt.PromptBuilder.add_user_message">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_user_message</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;添加用戶消息到提示中&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">user_prompt</span> <span class="o">+=</span> <span class="n">message</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">history</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;User: </span><span class="si">{</span><span class="n">message</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+    
+<div class="viewcode-block" id="PromptBuilder.add_assistant_message">
+<a class="viewcode-back" href="../../../src.core.html#src.core.prompt.PromptBuilder.add_assistant_message">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_assistant_message</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;添加助手消息到提示中&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assistant_prompt</span> <span class="o">+=</span> <span class="n">message</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">history</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Assistant: </span><span class="si">{</span><span class="n">message</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+    
+<div class="viewcode-block" id="PromptBuilder.add_retrieval_results">
+<a class="viewcode-back" href="../../../src.core.html#src.core.prompt.PromptBuilder.add_retrieval_results">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_retrieval_results</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">results</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;添加檢索結果到提示中&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">retrieval_results</span> <span class="o">+=</span> <span class="n">results</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">history</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Retrieval Results: </span><span class="si">{</span><span class="n">results</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+    
+<div class="viewcode-block" id="PromptBuilder.add_documents">
+<a class="viewcode-back" href="../../../src.core.html#src.core.prompt.PromptBuilder.add_documents">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_documents</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">documents</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Document</span><span class="p">]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;添加文檔到提示中&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">documents</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">doc</span><span class="o">.</span><span class="n">content</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">doc</span> <span class="ow">in</span> <span class="n">documents</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_retrieval_results</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+    
+<div class="viewcode-block" id="PromptBuilder.build_prompt">
+<a class="viewcode-back" href="../../../src.core.html#src.core.prompt.PromptBuilder.build_prompt">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">build_prompt</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;構建最終的提示字符串&quot;&quot;&quot;</span>
+        <span class="n">prompt</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_prompt</span><span class="p">:</span>
+            <span class="n">prompt</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;System: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">system_prompt</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">user_prompt</span><span class="p">:</span>
+            <span class="n">prompt</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;User: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">user_prompt</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">retrieval_results</span><span class="p">:</span>
+            <span class="n">prompt</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;以下是相關文獻摘要：</span><span class="se">\n</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">retrieval_results</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+            <span class="n">prompt</span> <span class="o">+=</span> <span class="s2">&quot;請依照以下指引生成回答：</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">prompt</span> <span class="o">+=</span> <span class="s2">&quot;- 用一段文字統整這些論文可能涉及的核心研究主題與趨勢，避免逐一重複每篇內容。</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">prompt</span> <span class="o">+=</span> <span class="s2">&quot;- 請在這段文字中自然地帶出 2 到 3 個可能的後續研究方向。</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+            <span class="n">prompt</span> <span class="o">+=</span> <span class="s2">&quot;請注意：</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">prompt</span> <span class="o">+=</span> <span class="s2">&quot;- 不要說『本文』或『以上回應』，直接給出分析結果。</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">prompt</span> <span class="o">+=</span> <span class="s2">&quot;- 不要使用條列格式、標題、步驟編號、格式化開頭（如『本文將…』）。</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">prompt</span> <span class="o">+=</span> <span class="s2">&quot;- 保持回答的完整性，確保有明確的結尾。</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">prompt</span> <span class="o">+=</span> <span class="s2">&quot;- 避免重複內容，確保回答簡潔。</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="n">prompt</span> <span class="o">+=</span> <span class="s2">&quot;- 不要使用『綜上所述』等總結性詞語。</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">assistant_prompt</span><span class="p">:</span>
+            <span class="n">prompt</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;Assistant: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">assistant_prompt</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="k">return</span> <span class="n">prompt</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Jerome Tze-Hou Hsu, Wenjie Lu, Pinyi Li.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
