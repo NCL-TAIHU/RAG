@@ -200,59 +200,6 @@ class MilvusSearchEngine(SearchEngine):
 
     def spec(self) -> SearchSpec:
         return SearchSpec(name="milvus_search_engine", optimal_for="weak")
-
-
-class SQLiteSearchEngine(SearchEngine):
-    def __init__(self, db_path: str):
-        self.db_path = db_path
-        self.connection = None
-
-    def setup(self):
-        import sqlite3
-        self.connection = sqlite3.connect(self.db_path)
-        cursor = self.connection.cursor()
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS documents (
-                id TEXT PRIMARY KEY,
-                abstract TEXT,
-                content TEXT,
-                keywords TEXT
-            )
-        ''')
-        self.connection.commit()
-
-    def insert(self, docs: List[Document]):
-        cursor = self.connection.cursor()
-        for doc in docs:
-            cursor.execute('''
-                INSERT OR REPLACE INTO documents (id, abstract, content, keywords)
-                VALUES (?, ?, ?, ?)
-            ''', (doc.id, doc.abstract, doc.content, ','.join(doc.keywords)))
-        self.connection.commit()
-
-    def search(self, query: str, filter: Filter, limit: int = 10) -> List[str]:
-        cursor = self.connection.cursor()
-        sql_query = '''
-            SELECT id FROM documents
-            WHERE 1=1'''
-        params = []
-
-        if filter.ids:
-            sql_query += ' AND id IN ({})'.format(','.join(['?'] * len(filter.ids)))
-            params.extend(filter.ids)
-
-        if filter.keywords:
-            for kw in filter.keywords:
-                sql_query += ' AND keywords LIKE ?'
-                params.append(f"%{kw}%")
-
-        sql_query += ' LIMIT ?'
-        params.append(limit)
-        cursor.execute(sql_query, params)
-        return [row[0] for row in cursor.fetchall()]
-    
-    def spec(self) -> SearchSpec:
-        return SearchSpec(name="sqlite_search_engine", optimal_for="strong")
     
 
 class ElasticSearchEngine(SearchEngine):

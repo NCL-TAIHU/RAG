@@ -60,3 +60,6 @@ Thumbs.db
 *.log.*.*.*.*
 *.log.*.*.*.*.*
 /outputs/
+/logs/
+/data/
+/~/
