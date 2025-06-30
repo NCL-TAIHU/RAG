@@ -11,6 +11,7 @@ from scipy.sparse import csr_array
 from typing import List
 import sys
 from src.core.manager import Manager
+from src.core.reranker import IdentityReranker
 from tqdm import tqdm
 CHATBOT = "meta-llama/Llama-3.1-8B-Instruct"
 DENSE_EMBEDDER = "sentence-transformers/all-MiniLM-L6-v2"
@@ -160,7 +161,7 @@ def main():
         vector_search_engine=MilvusSearchEngine(sparse_embedder, dense_embedder, document_cls=DOC_CLS, filter_cls=FILT_CLS)
     )
     engine2 = MilvusSearchEngine(sparse_embedder, dense_embedder, document_cls=DOC_CLS, filter_cls=FILT_CLS)
-    manager = Manager(library, [engine1, engine2], router_name="sparsity")
+    manager = Manager(library, [engine1, engine2], reranker=IdentityReranker(), router_name="sparsity")
     app = SearchApp(dataloader, manager, max_files=1000)
     app.setup()
     test(app)
