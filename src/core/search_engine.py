@@ -185,7 +185,7 @@ class MilvusSearchEngine(SearchEngine):
         return " and ".join(clauses) if clauses else None
 
 
-    def search(self, query: str, filter: Filter, limit: int = 10) -> List[str]:
+    def search(self, query: str, filter: Filter, limit: int = 100) -> List[str]:
         dense_vector, sparse_vector = self.embed_query(query)
         expr = self._get_query(filter)
         results = self.operator.search_hybrid(
