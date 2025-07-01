@@ -1,176 +1,257 @@
 import os
-from fastapi import FastAPI, Query, HTTPException
-from pydantic import BaseModel
-from typing import List, Optional
-from loguru import logger
+import sys
 import uvicorn
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel, Field
+from typing import List, Optional
+from datetime import datetime
+from loguru import logger
+from enum import Enum
 
-from main import HybridSearchApp
+# Add the project root directory to Python path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-# 初始化 FastAPI 應用程式
+from src.main.app import SearchApp
+from src.core.data import DataLoader
+from src.core.library import InMemoryLibrary
+from src.core.embedder import BGEM3Embedder, AutoModelEmbedder
+from src.core.search_engine import HybridSearchEngine, MilvusSearchEngine, ElasticSearchEngine, Filter
+from src.core.manager import Manager
+from src.utils.metrics import MetricsTracker
+
+# === Enums ===
+class SearchMethod(str, Enum):
+    DENSE = "dense_search"
+    SPARSE = "sparse_search"
+    HYBRID = "hybrid_search"
+
+# === Base Models ===
+class SearchFilter(BaseModel):
+    """Filter criteria for search results"""
+    ids: Optional[List[str]] = Field(None, description="List of document IDs to filter by")
+    years: Optional[List[int]] = Field(None, description="List of years to filter by")
+    categories: Optional[List[str]] = Field(None, description="List of categories to filter by")
+    schools: Optional[List[str]] = Field(None, description="List of schools to filter by")
+    depts: Optional[List[str]] = Field(None, description="List of departments to filter by")
+    keywords: List[str] = Field(default_factory=list, description="List of keywords to filter by")
+    authors: List[str] = Field(default_factory=list, description="List of authors to filter by")
+    advisors: List[str] = Field(default_factory=list, description="List of advisors to filter by")
+
+class SearchResult(BaseModel):
+    """Search result structure"""
+    id: str = Field(..., description="Document ID")
+    title: str = Field(..., description="Document title")
+    content: str = Field(..., description="Document content")
+    abstract: str = Field(..., description="Document abstract")
+    score: float = Field(..., description="Search relevance score")
+
+class SearchRequest(BaseModel):
+    """Search request structure"""
+    query: str = Field(..., description="Search query string")
+    method: SearchMethod = Field(SearchMethod.HYBRID, description="Search method to use")
+    limit: int = Field(5, ge=1, le=100, description="Maximum number of results to return")
+    filter: Optional[SearchFilter] = Field(None, description="Filter criteria for search results")
+
+class SearchResponse(BaseModel):
+    """Search response structure"""
+    results: List[SearchResult] = Field(..., description="List of search results")
+    llm_response: str = Field(..., description="LLM-generated response based on results")
+    query_time: float = Field(..., description="Query execution time in seconds")
+
+# === FastAPI App ===
 app = FastAPI(
-    title="Hybrid Search API",
-    description="API for searching academic papers using hybrid search",
+    title="RAG Search API",
+    description="""
+    A simple RAG (Retrieval-Augmented Generation) API for searching and generating responses.
+    Supports dense search, sparse search, and hybrid search methods.
+    Uses Elasticsearch for filtering and Milvus for vector search.
+    """,
     version="1.0.0"
 )
 
-# 初始化混合搜尋應用程式
-search_app = HybridSearchApp()
-
-# 啟動時進行設定
-@app.on_event("startup")
-async def startup_event():
-    """應用程式啟動時執行的事件"""
+# === Component Initialization ===
+def initialize_components():
+    """Initialize all required components for the search application"""
     try:
-        logger.info("Initializing search application...")
-        search_app.setup()
-        logger.info("Search application initialized successfully")
+        dataloader = DataLoader.from_default("ncl")
+        library = InMemoryLibrary()
+        sparse_embedder = BGEM3Embedder(model_name="BAAI/bge-m3")
+        dense_embedder = AutoModelEmbedder(model_name="sentence-transformers/all-MiniLM-L6-v2")
+        
+        # 初始化 Elasticsearch 和 Milvus 搜尋引擎
+        elastic_engine = ElasticSearchEngine(
+            es_host="https://localhost:9200",
+            es_index="documents",
+        )
+        milvus_engine = MilvusSearchEngine(sparse_embedder, dense_embedder)
+        
+        # 創建混合搜尋引擎
+        hybrid_engine = HybridSearchEngine(
+            relational_search_engine=elastic_engine,
+            vector_search_engine=milvus_engine
+        )
+        
+        manager = Manager(library, [hybrid_engine], router_name="simple")
+        search_app = SearchApp(dataloader, manager, max_files=float('inf'))
+        
+        return search_app
     except Exception as e:
-        logger.error(f"Error initializing search application: {str(e)}")
+        logger.error(f"Failed to initialize components: {e}")
         raise
 
-# 定義請求模型
-class SearchRequest(BaseModel):
-    query: str
-    method: str = "hybrid_search"
-    sparse_weight: Optional[float] = 0.5
-    dense_weight: Optional[float] = 0.5
-    limit: Optional[int] = 5
+search_app = initialize_components()
+metrics_tracker = MetricsTracker()
 
-# 定義回應模型
-class SearchResult(BaseModel):
-    title: str
-    data: str
-    content: str
-
-class SearchResponse(BaseModel):
-    results: List[SearchResult]
-    llm_response: str
-
-@app.get("/")
-async def root():
-    """API 根路徑"""
-    return {"message": "Welcome to Hybrid Search API"}
-
-@app.post("/search", response_model=SearchResponse)
-async def search(request: SearchRequest):
-    """執行搜尋"""
+# === API Endpoints ===
+@app.on_event("startup")
+async def startup_event():
+    """Initialize the search engine on startup"""
     try:
-        # 檢查搜尋方法是否有效
-        valid_methods = ["dense_search", "sparse_search", "hybrid_search"]
-        if request.method not in valid_methods:
-            raise HTTPException(status_code=400, detail=f"Invalid search method. Must be one of: {valid_methods}")
+        logger.info("🔧 Checking database status...")
+        
+        # 檢查 Elasticsearch 索引是否存在
+        es_engine = search_app.manager.search_engines[0].relational_search_engine
+        milvus_engine = search_app.manager.search_engines[0].vector_search_engine
+        
+        es_exists = es_engine.es.indices.exists(index=es_engine.es_index)
+        milvus_exists = hasattr(milvus_engine, 'operator') and milvus_engine.operator is not None
+        
+        if es_exists and milvus_exists:
+            logger.info(f"✅ Elasticsearch index {es_engine.es_index} and Milvus collection already exist.")
+        else:
+            logger.info("🔄 Initializing search engine...")
+            search_app.setup()
+            logger.info("✅ Search engine initialized successfully.")
+            
+    except Exception as e:
+        logger.error(f"❌ Initialization failed: {e}")
+        raise
 
-        # 執行搜尋
+@app.get("/", tags=["Health"])
+async def root():
+    """Root endpoint returning API information"""
+    return {
+        "name": "RAG Search API",
+        "version": "1.0.0",
+        "status": "operational"
+    }
+
+@app.post("/search", response_model=SearchResponse, tags=["Search"])
+async def search(request: SearchRequest):
+    """
+    Search for documents and generate a response using RAG.
+    
+    - **query**: The search query string
+    - **method**: Search method (dense_search, sparse_search, or hybrid_search)
+    - **limit**: Maximum number of results to return
+    - **filter**: Optional filter criteria for Elasticsearch filtering
+    """
+    try:
+        # 開始追蹤指標
+        metrics_tracker.start_tracking()
+        
+        start_time = datetime.now()
+        
+        # 轉換 filter 為 Elasticsearch 可用的格式
+        es_filter = Filter()  # 創建一個空的 Filter 物件
+        if request.filter:
+            es_filter = Filter(
+                ids=request.filter.ids,
+                years=request.filter.years,
+                categories=request.filter.categories,
+                schools=request.filter.schools,
+                depts=request.filter.depts,
+                keywords=request.filter.keywords,
+                authors=request.filter.authors,
+                advisors=request.filter.advisors
+            )
+        
+        # Perform search
         results = search_app.search(
             query=request.query,
-            method=request.method,
-            sparse_weight=request.sparse_weight,
-            dense_weight=request.dense_weight,
+            filter=es_filter,
             limit=request.limit
         )
 
-        print(f"[DEBUG] type of results: {type(results)}, results = {results}")
-
         if not results:
-            return SearchResponse(results=[], llm_response="No results found")
+            return SearchResponse(
+                results=[],
+                llm_response="抱歉，找不到相關的結果。",
+                query_time=(datetime.now() - start_time).total_seconds()
+            )
 
-        # 生成 LLM 回應
-        llm_response = search_app.generate_response(results, request.query)
-
-        # 格式化結果
+        # Generate LLM response
+        rag_result = search_app.rag(request.query, results)
+        llm_response = rag_result["generation"]
+        llm_prompt = rag_result["prompt"]
+        
+        print("--------------------------------")
+        print(f"Prompt: {llm_prompt}")
+        print("--------------------------------")
+        print(f"Raw results: {llm_response}")
+        print("--------------------------------")
+        
+        # Format results
         formatted_results = []
         for hit in results:
-            try:
-                print(f"[DEBUG] hit type: {type(hit)}, dir(hit): {dir(hit)}")
-                
-                # 從Hit物件中提取數據
-                hit_data = getattr(hit, 'data', {})
-                print(f"[DEBUG] hit_data type: {type(hit_data)}, hit_data keys: {hit_data.keys() if isinstance(hit_data, dict) else 'Not a dict'}")
-                
-                # 嘗試獲取entity
-                entity = None
-                if isinstance(hit_data, dict) and 'entity' in hit_data:
-                    entity = hit_data['entity']
-                elif hasattr(hit, 'entity'):
-                    entity = hit.entity
-                
-                print(f"[DEBUG] entity: {entity}")
-                
-                # 提取標題和內容
-                title = "No title available"
-                entity_data = ""
-                entity_content = ""
-                
-                # 從entity中提取數據
-                if entity is not None:
-                    if isinstance(entity, dict):
-                        entity_data = entity.get('data', '')
-                        entity_content = entity.get('content', '')
-                    else:
-                        entity_data = getattr(entity, 'data', '')
-                        entity_content = getattr(entity, 'content', '')
-                
-                # 如果還是沒找到，可能需要檢查hit.entity的其他屬性
-                if not entity_data and hasattr(hit, 'entity'):
-                    print(f"[DEBUG] Checking hit.entity: {dir(hit.entity) if hasattr(hit, 'entity') else 'No entity attribute'}")
-                
-                print(f"[DEBUG] entity_data: {entity_data}")
-                print(f"[DEBUG] entity_content length: {len(str(entity_content)) if entity_content else 0}")
-                
-                # 確保數據是字串類型
-                if not isinstance(entity_data, str):
-                    entity_data = str(entity_data) if entity_data is not None else ""
-                
-                if not isinstance(entity_content, str):
-                    entity_content = str(entity_content) if entity_content is not None else ""
-                
-                # 嘗試提取標題
-                if entity_data:
-                    lines = entity_data.splitlines()
-                    if lines and '論文名稱:' in lines[0]:
-                        title = lines[0].strip()
-                        title = title.replace("論文名稱: ", "").strip()
-                    elif len(lines) > 0:
-                        title = lines[0].strip()
-                        title = title.replace("論文名稱: ", "").strip()
-                
-                # 確保標題是字串
-                if not isinstance(title, str):
-                    title = str(title) if title is not None else "No title available"
-                    # 去除title中的"論文名稱:"
-                    title = title.replace("論文名稱: ", "").strip()
-                
-                print(f"[DEBUG] Final title: {title}")
-                
-                # 創建SearchResult物件
-                search_result = SearchResult(
-                    title=title,
-                    data=entity_data,
-                    content=entity_content
-                )
-                formatted_results.append(search_result)
-                
-            except Exception as e:
-                logger.error(f"Error formatting result: {str(e)}")
-                print(f"[DEBUG] Error: {str(e)}")
-                import traceback
-                print(f"[DEBUG] Traceback: {traceback.format_exc()}")
+            # 從 chinese 或 english 中提取 title
+            title = hit.chinese.title if hit.chinese and hit.chinese.title else \
+                    hit.english.title if hit.english and hit.english.title else "無標題"
+            
+            # 從 chinese 或 english 中提取 abstract 作為 content
+            content = hit.chinese.abstract if hit.chinese and hit.chinese.abstract else \
+                      hit.english.abstract if hit.english and hit.english.abstract else ""
+            
+            formatted_results.append(SearchResult(
+                id=hit.id,
+                title=title,
+                content=content,
+                abstract=content,  # 這裡用 content 作為 abstract
+                score=hit.score if hasattr(hit, "score") else 0.0
+            ))
 
+        print("--------------------------------")
+        print(f"Formatted results: {formatted_results}")
+        print("--------------------------------")
+
+
+        # 結束追蹤並記錄指標
+        metrics = metrics_tracker.end_tracking(
+            query=request.query,
+            llm_response=llm_response,
+            prompt=llm_prompt,
+            results=formatted_results
+        )
+        
         return SearchResponse(
             results=formatted_results,
-            llm_response=llm_response
+            llm_response=llm_response,
+            query_time=metrics["duration"]
         )
 
     except Exception as e:
-        logger.error(f"Error during search: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Search error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"搜尋操作失敗: {str(e)}")
 
-@app.get("/health")
-async def health_check():
-    """健康檢查端點"""
-    return {"status": "ok"}
-
+# === Entrypoint ===
 if __name__ == "__main__":
     port = int(os.getenv("API_PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run(app, host="0.0.0.0", port=port) 
+
+
+
+# Full Example
+'''
+curl -X POST "http://localhost:8000/search" \
+     -H "Content-Type: application/json" \
+     -d '{
+           "query": "機器學習在自然語言處理中的應用",
+           "method": "hybrid_search",
+           "limit": 5,
+           "filter": {
+             "years": [2020, 2021, 2022],
+             "categories": ["Computer Science"],
+             "keywords": ["Machine Learning", "NLP"]
+           }
+         }'
+'''

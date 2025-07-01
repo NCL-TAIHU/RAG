@@ -1,0 +1,6 @@
+{
+  "top_k": 9,
+  "hits": 248,
+  "total": 597,
+  "description": "Content schema: \nabstract:  (str)\ntitle:  (str)\n Metadata schema: \ncorpusid: 0 (int)\nyear:  (int)\nvenue:  (str)\nauthors:  (str)\ndoi:  (str)\narxiv:  (str)\ndblp:  (str)\npdfurl:  (str)\n Filter must fields: \nauthors\n Filter filter fields: \nyear\nvenue"
+}

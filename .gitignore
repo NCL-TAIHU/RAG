@@ -4,10 +4,10 @@ __pycache__/
 *$py.class
 *.so
 .Python
-build/
 develop-eggs/
 dist/
 downloads/
+build/
 eggs/
 .eggs/
 lib/
@@ -19,6 +19,8 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+
+/config/elastic_search.yml
 
 # Virtual Environment
 venv/
@@ -58,3 +60,6 @@ Thumbs.db
 *.log.*.*.*.*
 *.log.*.*.*.*.*
 /outputs/
+/logs/
+/data/
+/~/

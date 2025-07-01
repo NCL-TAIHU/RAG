@@ -1,0 +1,2 @@
+password: <your password> # password for the elastic user
+ca_certs: ~/apps/elasticsearch-9.0.2/config/certs/http_ca.crt # path to the certificate file for the elasticsearch server

@@ -1,0 +1,63 @@
+1. abstract is confusing, should be abstracts
+2. Prompt generation should be one class
+3. Embedding functions should be umbrellaed under an interface
+4. should have document class, indexable by ID, which gets metadata and abstract, instead of metadata and abstract two separate lists
+5. Should be a data postprocessor
+6. LLM should be independent class, wrapping a manager around it makes unecassary clunkiness. 
+7. Test different embedding functions and filtering abilities. 
+8. Create command line / jupyter application to test on different query configurations (filtering, prompt etc.). 
+9. Write embedding question generator (LLM class, prompt generator). 
+
+LLM Builder
+Database Builder
+Prompt Builder
+load data 
+embedder, embedding function and output configurations 
+Query can be an object, including metadata filter. 
+--> Is dense and sparse embedding separately stored? 
+
+Post Processor
+
+
+#parse keywords
+
+
+
+分工工作模式
+程式碼分工方式
+git commit
+
+
+ElasticSearch is not a filter in a functional sense. 
+It's a stateful object that needs to be maintained and synchronized with the vector db. 
+The filtered elements is a function of the database state and the query, not just the query. 
+
+Therefore, we need something to track "a thing that can be maintained by insertion of data" 
+That's called a database
+But abstracting a "database" is too abstract, because each database requires drastically different preprocessing techniques and 
+data formats transformation.
+call it a subset, not a filter. 
+
+extract embed abstracts to be a functionality of vector db manager
+
+
+at the manager level, we want to include routing capability, thus we should delegate hybrid-orchestration to search engine level
+
+In building this system, I’ve designed for adjustability — the architecture exposes many degrees of freedom across routing logic, 
+embedding strategies, and filtering behavior. But without visibility, adjustability is blind. 
+That’s where monitoring comes in: it serves as the system’s vision, enabling it to observe itself in action. 
+With vision and mobility combined, the system can begin to learn — not just respond to queries, but actively navigate the space of search strategies to find the sweet spots. This pairing transforms static retrieval into a dynamic, self-correcting process — one that can adapt over time toward better performance, interpretability, and intent alignment.
+
+Adjust knobs based on info
+Knobs:
+Hybridization alpha
+Language mixture weights
+
+Info: 
+Metadata filters
+Monitored performance distribution for each subset
+There can be different distribution for each characteristic, and each filter would belong to multiple such subsets
+We can make the decision based on the combined information of these different subset partitions, and such weight 
+can be based on the confidence that subset is a meaningful indicator (If a partition, like school name, doesn't affect search method accuracy, then
+the results should be pretty even across schools. But with something like domain, it may vary a lot. However it's challenging to determine whether that is innate variance
+caused by randomness or true indication of meaningfulness.)
