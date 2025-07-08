@@ -6,6 +6,7 @@ import yaml
 from datasets import load_dataset
 from tqdm import tqdm
 from src.core.util import coalesce
+import uuid
 
 class DataLoader: 
     def load(self, *args, **kwargs) -> Iterator[List[Document]]:
@@ -134,9 +135,8 @@ class NCLDataLoader(DataLoader):
                     if not line.strip():
                         continue
                     data: Dict = json.loads(line)
-                    data = data.get("root", data)  # handle optional "root" wrapper
                     yield NCLDocument(
-                        id=str(counter),
+                        id=data['uid'],
                         year=data.get("畢業學年度", None), 
                         category=data.get("學位類別", None),
                         chinese=Info(

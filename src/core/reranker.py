@@ -16,7 +16,7 @@ class Reranker:
             documents (list): A list of documents to rerank.
 
         Returns:
-            list: A list of reranked documents.
+            List: A list of reranked documents.
         """
         raise NotImplementedError("Reranker is an abstract class and must be implemented by subclasses.")
     
