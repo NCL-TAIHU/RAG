@@ -1,0 +1,5 @@
+BAAI/bge-m3: 
+  type: "sparse"
+
+sentence-transformers/all-MiniLM-L6-v2: 
+  type: "dense"

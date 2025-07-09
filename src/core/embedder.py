@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 from transformers import AutoTokenizer, AutoModel
-from typing import Union, List, Dict
+from typing import Union, List, Dict, Any
 import logging
 from FlagEmbedding import BGEM3FlagModel
 from milvus_model.hybrid import BGEM3EmbeddingFunction
@@ -10,11 +10,37 @@ import numpy as np
 import contextlib
 import io
 import GPUtil
+import yaml
 
 
 logger = logging.getLogger(__name__)
+model_config = yaml.safe_load(open("config/models.yml", "r"))
 
-class DenseEmbedder:
+class BaseEmbedder:
+    """
+    Base class for all emb
+    """
+    def embed(self, texts: List[str]) -> Any: 
+        """
+        Embeds a list of texts into a list of vectors.
+        :param texts: A single text or a list of texts to be embedded.
+        :return: A list of vectors representing the embedded texts.
+        """
+        raise NotImplementedError("This method should be overridden by subclasses.")
+    
+    def name(self) -> str: 
+        raise NotImplementedError("This method should be overridden by subclasses.")
+    
+    @classmethod
+    def from_default(cls, model_name: str) -> 'BaseEmbedder':
+        if model_config[model_name]["type"] == "dense":
+            return DenseEmbedder.from_default(model_name)
+        elif model_config[model_name]["type"] == "sparse":
+            return SparseEmbedder.from_default(model_name)
+        else:
+            raise ValueError(f"Unknown embedder type: {model_config[model_name]['type']}. Supported types: 'dense', 'sparse'.")
+    
+class DenseEmbedder(BaseEmbedder):
     def get_dim(self) -> int:
         """
         Returns the dimension of the embedding vectors.
@@ -28,8 +54,17 @@ class DenseEmbedder:
         :return: A list of vectors representing the embedded texts.
         """
         raise NotImplementedError("This method should be overridden by subclasses.")
+    
+    @classmethod
+    def from_default(cls, model_name: str) -> 'DenseEmbedder':
+        """
+        Factory method to create a DenseEmbedder instance from a default model name.
+        :param model_name: The name of the model to be used for embedding.
+        :return: An instance of DenseEmbedder.
+        """
+        return AutoModelEmbedder(model_name)
 
-class SparseEmbedder:
+class SparseEmbedder(BaseEmbedder):
     def embed(self, texts: List[str]) -> csr_array:
         """
         Embeds a list of texts into sparse vectors.
@@ -37,6 +72,15 @@ class SparseEmbedder:
         :return: A sparse matrix representing the embedded texts.
         """
         raise NotImplementedError("This method should be overridden by subclasses.")
+    
+    @classmethod
+    def from_default(cls, model_name: str) -> 'SparseEmbedder':
+        """
+        Factory method to create a SparseEmbedder instance from a default model name.
+        :param model_name: The name of the model to be used for embedding.
+        :return: An instance of SparseEmbedder.
+        """
+        return BGEM3Embedder(model_name)
     
 class AutoModelEmbedder(DenseEmbedder):
     '''
@@ -47,6 +91,7 @@ class AutoModelEmbedder(DenseEmbedder):
         Initializes the Embedder with a model.
         param model: The model to be used for embedding.
         """
+        self.model_name = model_name
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.model = AutoModel.from_pretrained(model_name)
         try:
@@ -62,6 +107,9 @@ class AutoModelEmbedder(DenseEmbedder):
         self.batch_size = 32  # Default batch size for embedding
         print(f"Model {model_name} is on device: {self.device}")
 
+    def name(self) -> str:
+        return self.model_name
+    
     def get_dim(self) -> int:
         """
         Returns the dimension of the embedding vectors.
@@ -104,6 +152,7 @@ class BGEM3Embedder(SparseEmbedder):
         Initializes the BGEM3Embedder with a model.
         :param model_name: The name of the model to be used for embedding.
         """
+        self.model_name = model_name
         self.model = BGEM3FlagModel(model_name, use_fp16=use_fp16)
         try:
             # Select the GPU with most free memory
@@ -117,7 +166,9 @@ class BGEM3Embedder(SparseEmbedder):
         self.vocab_size = len(self.model.tokenizer)
         print(f"BGE Model is on device: {self.device}")
 
-
+    def name(self) -> str:
+        return self.model_name
+    
     def embed(self, texts: List[str]) -> csr_array:
         f = io.StringIO()
         #redirect redundant output to avoid cluttering the console

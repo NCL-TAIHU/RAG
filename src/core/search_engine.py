@@ -1,4 +1,4 @@
-from typing import List, Optional, Dict, Type
+from typing import List, Optional, Dict, Type, Tuple
 from src.core.document import Document, FieldType
 from src.core.filter import Filter
 from src.core.embedder import SparseEmbedder, DenseEmbedder
@@ -14,6 +14,8 @@ from elasticsearch import Elasticsearch
 from pydantic import BaseModel
 import yaml
 import logging
+from src.core.vector_manager import DenseVectorManager, SparseVectorManager, BaseVectorManager
+from scipy.sparse import csr_array
 
 logger = logging.getLogger(__name__)
 
@@ -92,12 +94,16 @@ class MilvusSearchEngine(SearchEngine):
         dense_embedder: DenseEmbedder,
         document_cls: Type[Document],
         filter_cls: Type[Filter],
+        dense_vm: DenseVectorManager, 
+        sparse_vm: SparseVectorManager, 
         collection_name: str = "milvus_collection",
     ):
         self.sparse_embedder = sparse_embedder
         self.dense_embedder = dense_embedder
         self.document_cls = document_cls
         self.filter_cls = filter_cls
+        self.dense_vm = dense_vm
+        self.sparse_vm = sparse_vm
 
         # Build fields from document metadata schema
         fields = [
@@ -146,19 +152,15 @@ class MilvusSearchEngine(SearchEngine):
         sparse = self.sparse_embedder.embed([query])
         assert sparse.shape[0] == 1, "Expected a single-row sparse vector"
         return dense, sparse._getrow(0)
-
+        
     def insert(self, documents: List[Document]):
-        contents = [doc.content() for doc in documents]
-        channel_contents = [next(iter(content.values())).contents for content in contents] #TODO: handle multiple content fields, default to first one
-        filtered_texts = [c[0] if c else "" for c in channel_contents]  # Fallback to empty string if no content
-        dense_embeddings = self.dense_embedder.embed(filtered_texts)
-        sparse_embeddings = self.sparse_embedder.embed(filtered_texts)
-
+        dense_embeddings = self.dense_vm.get_doc_embeddings(documents)
+        sparse_embeddings = self.sparse_vm.get_doc_embeddings(documents)
         insert_dict = {
-            "pk": [doc.key() for doc in documents],
-            "sparse_vector": sparse_embeddings,
-            "dense_vector": dense_embeddings,
-        }
+                    "pk": [doc.key() for doc in documents],
+                    "sparse_vector": sparse_embeddings,
+                    "dense_vector": dense_embeddings,
+                }
         metadatas = [doc.metadata() for doc in documents]
         for f_name in self.filter_cls.filter_fields():
             insert_dict[f_name] = [get(metadatas[i][f_name].contents, 0, metadatas[i][f_name].type.default_value()) for i in range(len(documents))]
