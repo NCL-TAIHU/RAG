@@ -61,3 +61,14 @@ We can make the decision based on the combined information of these different su
 can be based on the confidence that subset is a meaningful indicator (If a partition, like school name, doesn't affect search method accuracy, then
 the results should be pretty even across schools. But with something like domain, it may vary a lot. However it's challenging to determine whether that is innate variance
 caused by randomness or true indication of meaningfulness.)
+
+To persistently store vectors, we created the vector store objects. But that alone isn’t enough—how does a search engine know when to embed a new vector on-the-fly versus when to retrieve a precomputed one? That’s where the vector manager comes in. Given a list of documents, the vector manager decides which ones already have stored embeddings and which ones need to be embedded, handling both retrieval and computation seamlessly.
+
+The vector store itself maintains an in-memory cache while the system is running. When a new document is inserted, its embedding is stored in memory so that it can be reused later—potentially by a different search engine—without recomputing. However, runtime updates don’t immediately affect the file system. We reserve persistent updates for explicit calls to .save().
+
+This design is intentional. By separating in-memory caching from permanent storage, we allow the system to remain fast and flexible during operation, while keeping storage updates standardized and version-controlled. The precompute.py script is responsible for bulk updates—it precomputes embeddings and writes them to disk in one go. This ensures reproducibility and avoids polluting the vector store with untracked or inconsistent additions.
+
+Factory is the control center. 
+Core problem: How do we assign configurations to specific search engines without overcomplicating the search api? 
+Solution: In factory, we tell all the search engines their way of fulfilling the search requests (including alphas and other hyperparameters), 
+So that when the system is running, the search request can be simple, under the factory-constructed environment. 
