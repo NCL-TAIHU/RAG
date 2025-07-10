@@ -14,7 +14,7 @@ import yaml
 
 
 logger = logging.getLogger(__name__)
-model_config = yaml.safe_load(open("config/models.yml", "r"))
+model_config = yaml.safe_load(open("config/model.yml", "r"))
 
 class BaseEmbedder:
     """

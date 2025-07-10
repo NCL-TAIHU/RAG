@@ -10,11 +10,10 @@ import json
 import numpy as np
 from typing import List, Dict, Optional
 from scipy.sparse import csr_array, vstack, save_npz, load_npz
-from src.core.vector_store import DenseVS, SparseVS, VSMetadata
 import yaml
 from datetime import datetime
 
-model_config = yaml.safe_load(open("config/models.yml", "r"))
+model_config = yaml.safe_load(open("config/model.yml", "r"))
 class VSMetadata(BaseModel):
     """
     Metadata for the vector store, including the type of embeddings used.

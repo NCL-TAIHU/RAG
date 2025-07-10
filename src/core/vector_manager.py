@@ -15,6 +15,20 @@ class BaseVectorManager(ABC):
     def get_doc_embeddings(self, docs: List[Document]) -> Any:
         pass
 
+    def _get_first_content(self, doc: Document) -> str:
+        """
+        Helper method to extract the first content from a Document.
+        If the document has no content, returns an empty string.
+        """
+        if doc.content():
+            first_field = next(iter(doc.content().values()))
+            if first_field.contents:
+                return first_field.contents[0]
+            else: 
+                #first field exists but is empty
+                return ""
+        return ""
+
     def _collect_embeddings(self, docs: List[Document]) -> Dict[int, Any]:
         """
         Shared logic to retrieve or compute embeddings, returning a dict from original index → embedding.
@@ -40,11 +54,7 @@ class BaseVectorManager(ABC):
                 embeddings_by_index[idx] = emb
 
         if to_embed:
-            texts = [
-                next(iter(doc.content().values())).contents[0]
-                if doc.content() else ""
-                for doc in to_embed
-            ]
+            texts = [self._get_first_content(doc) for doc in to_embed]
             computed = self.embedder.embed(texts)
             for idx, emb in zip(to_embed_indices, computed):
                 embeddings_by_index[idx] = emb

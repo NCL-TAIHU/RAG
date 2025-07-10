@@ -13,7 +13,7 @@ config = yaml.safe_load(open("config/model.yml", "r", encoding="utf-8"))
 if __name__ == "__main__":
     dataloader = DataLoader.from_default(DATASET)
     embedder = BaseEmbedder.from_default(MODEL)
-    vs = BaseVS.from_default(config[MODEL]["type"], os.path.join(ROOT, DATASET, MODEL))
+    vs = BaseVS.from_default(config[MODEL]["type"], os.path.join(ROOT, DATASET, MODEL))# TODO: add metadata 
     for docs in dataloader.load(): 
         contents = [next(iter(doc.content().values())).contents[0] for doc in docs]
         emb = embedder.embed(contents)

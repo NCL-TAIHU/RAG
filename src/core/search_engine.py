@@ -164,7 +164,6 @@ class MilvusSearchEngine(SearchEngine):
         metadatas = [doc.metadata() for doc in documents]
         for f_name in self.filter_cls.filter_fields():
             insert_dict[f_name] = [get(metadatas[i][f_name].contents, 0, metadatas[i][f_name].type.default_value()) for i in range(len(documents))]
-
         self.operator.buffered_insert([insert_dict[k] for k in self.config.field_names()])
 
     def _get_query(self, filter: Filter) -> Optional[str]:

@@ -1,4 +1,4 @@
-from run.app import SearchApp
+from src.run.app import SearchApp
 from src.core.data import DataLoader
 from src.core.library import Library, InMemoryLibrary
 from src.core.search_engine import HybridSearchEngine, MilvusSearchEngine, ElasticSearchEngine, SearchEngine
@@ -87,7 +87,7 @@ class AppFactory:
             router = "simple"
             reranker = IdentityReranker()
             return cls(engines=[engine], library=library, dataloader=dataloader,
-                       router=router, reranker=reranker, max_files=1000)
+                       router_name=router, reranker=reranker, max_files=1000000)
 
 
     def build(self) -> SearchApp: 
