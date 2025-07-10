@@ -71,14 +71,15 @@ class AppFactory:
                 document_cls=DOC_CLS, 
                 filter_cls=FILT_CLS, 
                 dense_vm=dense_vm,
-                sparse_vm=sparse_vm
-            )
+                sparse_vm=sparse_vm, 
+                alpha = 0.5
+            ) #vector search engine
             rengine = ElasticSearchEngine(
                 "https://localhost:9200", 
                 document_cls=DOC_CLS, 
                 filter_cls=FILT_CLS, 
                 es_index="documents"
-            )
+            ) #relational search engine
             engine = HybridSearchEngine(
                 relational_search_engine=rengine,
                 vector_search_engine=vengine

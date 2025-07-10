@@ -97,6 +97,7 @@ class MilvusSearchEngine(SearchEngine):
         dense_vm: DenseVectorManager, 
         sparse_vm: SparseVectorManager, 
         collection_name: str = "milvus_collection",
+        alpha = 0.5
     ):
         self.sparse_embedder = sparse_embedder
         self.dense_embedder = dense_embedder
@@ -104,6 +105,7 @@ class MilvusSearchEngine(SearchEngine):
         self.filter_cls = filter_cls
         self.dense_vm = dense_vm
         self.sparse_vm = sparse_vm
+        self.alpha = alpha
 
         # Build fields from document metadata schema
         fields = [
@@ -144,7 +146,10 @@ class MilvusSearchEngine(SearchEngine):
     def setup(self):
         builder = CollectionBuilder.from_config(self.config)
         builder.connect()
-        self.collection = builder.build()
+        if Collection.exists(builder.collection_name): #TODO validate the collection schema
+            self.collection = builder.get_existing()
+        else: 
+            self.collection = builder.build()
         self.operator = CollectionOperator(self.collection)
 
     def embed_query(self, query: str):
@@ -192,7 +197,7 @@ class MilvusSearchEngine(SearchEngine):
         results = self.operator.search_hybrid(
             dense_vector=dense_vector,
             sparse_vector=sparse_vector,
-            alpha=0.5,
+            alpha=self.alpha,
             limit=limit,
             output_fields=["pk"],
             expr=expr
