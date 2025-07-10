@@ -1,3 +1,4 @@
+from src.core.document import Document
 
 def coalesce(*args):
     """
@@ -30,3 +31,17 @@ def get(ls: list, index: int, default=None):
         return ls[index]
     except IndexError:
         return default
+    
+def get_first_content(doc: Document) -> str:
+        """
+        Helper method to extract the first content from a Document.
+        If the document has no content, returns an empty string.
+        """
+        if doc.content():
+            first_field = next(iter(doc.content().values()))
+            if first_field.contents:
+                return first_field.contents[0]
+            else: 
+                #first field exists but is empty
+                return ""
+        return ""

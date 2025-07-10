@@ -77,13 +77,36 @@ class BaseVS:
         raise NotImplementedError("This method should be overridden by subclasses.")
     
     @classmethod
-    def from_default(cls, type: str, root: str, metadata: VSMetadata) -> 'BaseVS':
+    def create(cls, type: str, root: str, metadata: VSMetadata) -> 'BaseVS':
         if type == "dense":
             return FileBackedDenseVS(root=root, metadata=metadata)
         elif type == "sparse":
             return FileBackedSparseVS(root=root, metadata=metadata)
         else:
             raise ValueError(f"Unknown vector store type: {type}. Supported: 'dense', 'sparse'.")
+        
+    @classmethod
+    def from_existing(cls, root: str) -> Optional['BaseVS']:
+        """
+        Factory method to create a vector store instance from an existing root directory.
+        :param root: The root directory where the vector store data is stored.
+        :return: An instance of FileBackedDenseVS or FileBackedSparseVS, or None if loading fails.
+        """
+        meta_path = os.path.join(root, "metadata.json")
+        if not os.path.exists(meta_path):
+            print(f"[ERROR] Metadata file not found at {meta_path}")
+            return None
+        
+        with open(meta_path, "r", encoding="utf-8") as f:
+            metadata = VSMetadata(**json.load(f))
+        
+        if metadata.embedding_type == "dense":
+            return FileBackedDenseVS.from_existing(root)
+        elif metadata.embedding_type == "sparse":
+            return FileBackedSparseVS.from_existing(root)
+        else:
+            print(f"[ERROR] Unknown embedding type in metadata: {metadata.embedding_type}")
+            return None
 
 class DenseVS(BaseVS):
     def insert(self, ids, embeddings: List[List[float]]): 
@@ -130,6 +153,7 @@ class FileBackedDenseVS(DenseVS):
         return [self.vectors[doc_id] for doc_id in ids]
 
     def save(self):
+        self._metadata.updated_at = datetime.now().isoformat()
         os.makedirs(self.root, exist_ok=True)
         with open(self.vector_path, "w", encoding="utf-8") as f:
             for doc_id, vector in self.vectors.items():
@@ -192,6 +216,7 @@ class FileBackedSparseVS(SparseVS):
         return self.matrix[indices]
 
     def save(self):
+        self._metadata.updated_at = datetime.now().isoformat()
         os.makedirs(self.root, exist_ok=True)
         if self.matrix is not None:
             save_npz(self.matrix_path, self.matrix)
