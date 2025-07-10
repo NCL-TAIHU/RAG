@@ -146,10 +146,7 @@ class MilvusSearchEngine(SearchEngine):
     def setup(self):
         builder = CollectionBuilder.from_config(self.config)
         builder.connect()
-        if Collection.exists(builder.collection_name): #TODO validate the collection schema
-            self.collection = builder.get_existing()
-        else: 
-            self.collection = builder.build()
+        self.collection = builder.build()
         self.operator = CollectionOperator(self.collection)
 
     def embed_query(self, query: str):
