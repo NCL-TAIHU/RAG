@@ -192,7 +192,7 @@ class MilvusSearchEngine(SearchEngine):
         results = self.operator.search_hybrid(
             dense_vector=dense_vector,
             sparse_vector=sparse_vector,
-            alpha=0.5,
+            alpha=0.8,
             limit=limit,
             output_fields=["pk"],
             expr=expr
