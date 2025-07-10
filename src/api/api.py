@@ -184,7 +184,6 @@ async def get_filter_schema(dataset: DatasetType):
             "description": {
                 "filter_fields": "OR logic - documents matching ANY of the specified values",
                 "must_fields": "AND logic - documents must contain ALL specified values",
-                "note": "For year field, you can pass integers [2020, 2021] - they will be converted automatically"
             }
         }
     except Exception as e:
