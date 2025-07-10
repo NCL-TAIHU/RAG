@@ -121,6 +121,8 @@ class AutoModelEmbedder(DenseEmbedder):
         '''
         Embeds a list of texts into a list of vectors.
         '''
+        device_id = GPUtil.getFirstAvailable(order='memory', maxLoad=0.5, maxMemory=0.8)[0]
+        self.device = torch.device(f"cuda:{device_id}")
         if texts is None or len(texts) == 0:
             logger.warning("No texts provided for embedding.")
             return []
@@ -134,6 +136,7 @@ class AutoModelEmbedder(DenseEmbedder):
     def _embed_batch(self, batch_texts: List[str]) -> List[List[float]]:
         with torch.no_grad():
             inputs = self.tokenizer(batch_texts, return_tensors="pt", padding=True, truncation=True).to(self.device)
+            self.model.to(self.device)
             outputs = self.model(**inputs)
             hidden_states = outputs.last_hidden_state #[batch_size, seq_len, hidden_dim]
             attention_mask = inputs["attention_mask"].unsqueeze(-1) # shape: [batch_size, seq_len, 1]
