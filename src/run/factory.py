@@ -64,6 +64,7 @@ class AppFactory:
                                         FileBackedDenseVS(root=DENSE_VS_ROOT, metadata=VSMetadata.from_model(DENSE_EMBEDDER_NAME)))
             sparse_vm = SparseVectorManager(sparse_vs, sparse_embedder)
             dense_vm = DenseVectorManager(dense_vs, dense_embedder)
+            #dense_vm.use_store = False
             vengine = MilvusSearchEngine(
                 sparse_embedder, 
                 dense_embedder, 

@@ -1,8 +1,10 @@
 from src.core.vector_store import FileBackedDenseVS, VSMetadata, BaseVS
 from src.core.embedder import BGEM3Embedder, DenseEmbedder, BaseEmbedder
 from src.core.data import DataLoader
+from src.core.util import get_first_content, coalesce
 import yaml
 import os 
+from tqdm import tqdm
 
 DATASET = "ncl"
 MODEL = "BAAI/bge-m3"
@@ -13,9 +15,17 @@ config = yaml.safe_load(open("config/model.yml", "r", encoding="utf-8"))
 if __name__ == "__main__":
     dataloader = DataLoader.from_default(DATASET)
     embedder = BaseEmbedder.from_default(MODEL)
-    vs = BaseVS.from_default(config[MODEL]["type"], os.path.join(ROOT, DATASET, MODEL))# TODO: add metadata 
-    for docs in dataloader.load(): 
-        contents = [next(iter(doc.content().values())).contents[0] for doc in docs]
+    root = os.path.join(ROOT, DATASET, MODEL)
+    vs: BaseVS = coalesce(
+        BaseVS.from_existing(root), 
+        BaseVS.create(
+            type=config[MODEL]["type"], 
+            root=root, 
+            metadata=VSMetadata.from_model(MODEL)
+        )
+    )
+    for docs in tqdm(dataloader.load()): 
+        contents = [get_first_content(doc) for doc in docs]
         emb = embedder.embed(contents)
         ids = [doc.key() for doc in docs]
         vs.insert(ids, emb)

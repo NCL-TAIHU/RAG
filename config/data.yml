@@ -8,4 +8,4 @@ history:
   path: data/history
 
 root: 
-  path: /share/data
+  path: /home/share/data
