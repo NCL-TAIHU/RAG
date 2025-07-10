@@ -77,7 +77,7 @@ class AppFactory:
                 alpha = 0.5
             ) #vector search engine
             rengine = ElasticSearchEngine(
-                "https://localhost:9200", 
+                "https://localhost:9201", 
                 document_cls=DOC_CLS, 
                 filter_cls=FILT_CLS, 
                 es_index=f"{dataset}"

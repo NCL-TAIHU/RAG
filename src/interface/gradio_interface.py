@@ -13,11 +13,11 @@ def search_documents(
     limit: int,
     years: List[int],
     categories: List[str],
-    schools: List[str],
-    depts: List[str],
+    # schools: List[str],
+    # depts: List[str],
     keywords: List[str],
-    authors: List[str],
-    advisors: List[str]
+    # authors: List[str],
+    # advisors: List[str]
 ) -> Dict[str, Any]:
     """
     執行文檔搜尋並返回結果
@@ -30,11 +30,11 @@ def search_documents(
         "filter": {
             "years": years if years else None,
             "categories": categories if categories else None,
-            "schools": schools if schools else None,
-            "depts": depts if depts else None,
+            # "schools": schools if schools else None,
+            # "depts": depts if depts else None,
             "keywords": keywords if keywords else [],
-            "authors": authors if authors else [],
-            "advisors": advisors if advisors else []
+            # "authors": authors if authors else [],
+            # "advisors": advisors if advisors else []
         }
     }
     
