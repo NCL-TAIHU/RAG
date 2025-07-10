@@ -46,7 +46,7 @@ class MetricsTracker:
         """計算文本的 token 數量"""
         return len(self.tokenizer.encode(text))
     
-    def end_tracking(self, query: str, llm_response: str, prompt: str, token_count: Optional[int] = None):
+    def end_tracking(self, query: str, llm_response: str, prompt: str, results: Optional[Any] = None):
         """結束追蹤並記錄指標"""
         end_time = time.time()
         duration = end_time - self.start_time
@@ -62,6 +62,7 @@ class MetricsTracker:
             "query": query,
             "llm_response": llm_response,
             "prompt": prompt,
+            "results": [result.model_dump() if hasattr(result, 'model_dump') else result.dict() if hasattr(result, 'dict') else result for result in results] if results else [],
             "token_usage": {
                 "prompt_tokens": prompt_tokens,
                 "response_tokens": response_tokens,
