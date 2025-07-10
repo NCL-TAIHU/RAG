@@ -1,5 +1,7 @@
 BAAI/bge-m3: 
+  alias: "bge_m3"
   type: "sparse"
 
 sentence-transformers/all-MiniLM-L6-v2: 
+  alias: "all_miniLM_L6_v2"
   type: "dense"

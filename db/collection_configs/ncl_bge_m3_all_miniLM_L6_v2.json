@@ -1,0 +1,88 @@
+{
+  "collection_name": "ncl_bge_m3_all_miniLM_L6_v2",
+  "fields": [
+    {
+      "name": "pk",
+      "dtype": 21,
+      "is_primary": true,
+      "max_length": 100,
+      "dim": null,
+      "is_partition_key": false,
+      "default_value": null
+    },
+    {
+      "name": "year",
+      "dtype": 5,
+      "is_primary": false,
+      "max_length": 4,
+      "dim": null,
+      "is_partition_key": false,
+      "default_value": null
+    },
+    {
+      "name": "category",
+      "dtype": 21,
+      "is_primary": false,
+      "max_length": 64,
+      "dim": null,
+      "is_partition_key": false,
+      "default_value": null
+    },
+    {
+      "name": "school_chinese",
+      "dtype": 21,
+      "is_primary": false,
+      "max_length": 128,
+      "dim": null,
+      "is_partition_key": false,
+      "default_value": null
+    },
+    {
+      "name": "dept_chinese",
+      "dtype": 21,
+      "is_primary": false,
+      "max_length": 128,
+      "dim": null,
+      "is_partition_key": false,
+      "default_value": null
+    },
+    {
+      "name": "sparse_vector",
+      "dtype": 104,
+      "is_primary": false,
+      "max_length": 10000,
+      "dim": null,
+      "is_partition_key": false,
+      "default_value": null
+    },
+    {
+      "name": "dense_vector",
+      "dtype": 101,
+      "is_primary": false,
+      "max_length": 10000,
+      "dim": 384,
+      "is_partition_key": false,
+      "default_value": null
+    }
+  ],
+  "indexes": [
+    {
+      "field_name": "sparse_vector",
+      "index_params": {
+        "index_type": "SPARSE_INVERTED_INDEX",
+        "metric_type": "IP"
+      }
+    },
+    {
+      "field_name": "dense_vector",
+      "index_params": {
+        "index_type": "IVF_FLAT",
+        "metric_type": "IP",
+        "params": {
+          "nlist": 128
+        }
+      }
+    }
+  ],
+  "consistency_level": "Strong"
+}

@@ -14,18 +14,20 @@ from pydantic import BaseModel
 from tqdm import tqdm
 from typing import List, Dict, Optional
 from scipy.sparse import csr_array
+import os
+import json
 import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('taihu')
 
 class FieldConfig(BaseModel): 
     name: str
     dtype: DataType
     is_primary: bool = False
     max_length: int = 10000
-    dim: int = None  
+    dim: Optional[int] = None  
     is_partition_key: bool = False
-    default_value: str = None
+    default_value: Optional[str] = None
 
 class IndexConfig(BaseModel):
     field_name: str
@@ -57,45 +59,68 @@ class CollectionConfig(BaseModel):
                 return field
         raise ValueError("No primary key field defined in collection config.")
 
+
 @dataclass
 class CollectionBuilder:
     '''
-    builds a Milvus collection specifying the collection fields and indexes
+    Builds a Milvus collection specifying the collection fields and indexes.
     '''
     collection_name: str
-    fields: list[FieldConfig] = field(default_factory=list)
-    indexes: list[IndexConfig] = field(default_factory=list)
-    consistency_level: str = "Strong"   
+    fields: List[FieldConfig] = field(default_factory=list)
+    indexes: List[IndexConfig] = field(default_factory=list)
+    consistency_level: str = "Strong"
+    config_path: str = field(init=False)
 
+    def __post_init__(self):
+        self.config_path = os.path.join("db", "collection_configs", f"{self.collection_name}.json")
 
     @classmethod
     def from_config(cls, config: CollectionConfig):
         return cls(**config.__dict__)  
-        
+
     def get_config(self) -> CollectionConfig:
         return CollectionConfig(**asdict(self))
-    
+
     def connect(self):
         connections.connect(uri="db/milvus.db")  # Adjust the URI as needed
 
-    def get_existing(self) -> Collection:
+    def get_existing(self) -> Optional[Collection]:
         '''
-        Returns the existing collection instance. 
-        Requires: Collection already exists.
+        Returns the existing collection instance.
+        Requires: Collection already exists and matches the configuration of the builder.
         '''
+        if not self._config_matches_saved(): 
+            logger.info(f"Collection {self.collection_name} does not match saved config, cannot retrieve existing collection.")
+            return None
+        logger.info(f"Retrieving existing collection {self.collection_name} from Milvus.")
         return Collection(self.collection_name)
-    
+
+    def _config_matches_saved(self) -> bool:
+        if not os.path.exists(self.config_path):
+            return False
+        with open(self.config_path, "r", encoding="utf-8") as f:
+            logger.debug(f"Loading saved config from {self.config_path}")
+            saved = CollectionConfig(**json.load(f))
+        return saved.model_dump() == self.get_config().model_dump()
+
+    def _save_config(self): 
+        os.makedirs(os.path.dirname(self.config_path), exist_ok=True)
+        with open(self.config_path, "w", encoding="utf-8") as f:
+            json.dump(self.get_config().model_dump(), f, indent=2)
+
     def build(self) -> Collection:
-        #drop existing collection if it exists
+        # Drop existing collection if it exists
+        logger.info(f"Building collection {self.collection_name} with fields: {[field.name for field in self.fields]} and indexes: {[index.field_name for index in self.indexes]}")
         if utility.has_collection(self.collection_name):
             Collection(self.collection_name).drop()
 
+        self._save_config()
         field_schemas = [FieldSchema(**field.model_dump(exclude_none=True)) for field in self.fields]
-        collection = Collection(self.collection_name, CollectionSchema(field_schemas), consistency_level = self.consistency_level)
+        schema = CollectionSchema(field_schemas)
+        collection = Collection(self.collection_name, schema, consistency_level=self.consistency_level)
         for index in self.indexes:
             collection.create_index(**index.model_dump(exclude_none=True))
         return collection
-    
 
 class CollectionOperator:
     '''

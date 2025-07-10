@@ -41,6 +41,7 @@ class SearchApp:
         self.data_loader: DataLoader = dataloader 
         self.manager: Manager = manager
         self.max_files: int = max_files
+        self.llm: Agent = None
 
     def setup(self):
         self.manager.setup()

@@ -17,6 +17,7 @@ from typing import List
 import os
 
 data_config = yaml.safe_load(open("config/data.yml", "r", encoding="utf-8"))
+model_config = yaml.safe_load(open("config/model.yml", "r", encoding="utf-8"))
 ROOT = os.path.join(data_config["root"]["path"], 'vectors')
 
 class AppFactory:
@@ -72,13 +73,14 @@ class AppFactory:
                 filter_cls=FILT_CLS, 
                 dense_vm=dense_vm,
                 sparse_vm=sparse_vm, 
+                collection_name=f"{dataset}_{model_config[SPARSE_EMBEDDER_NAME]['alias']}_{model_config[DENSE_EMBEDDER_NAME]['alias']}", 
                 alpha = 0.5
             ) #vector search engine
             rengine = ElasticSearchEngine(
                 "https://localhost:9200", 
                 document_cls=DOC_CLS, 
                 filter_cls=FILT_CLS, 
-                es_index="documents"
+                es_index=f"{dataset}"
             ) #relational search engine
             engine = HybridSearchEngine(
                 relational_search_engine=rengine,

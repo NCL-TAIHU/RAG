@@ -7,7 +7,7 @@ from src.core.router import Router
 from src.core.reranker import Reranker
 import logging 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('taihu')
 
 class Manager: 
     """

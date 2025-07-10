@@ -1,0 +1,12 @@
+{
+  "es_index": "ncl",
+  "fields": {
+    "year": "integer",
+    "category": "keyword",
+    "school_chinese": "keyword",
+    "dept_chinese": "keyword",
+    "keywords": "keyword",
+    "authors_chinese": "keyword",
+    "advisors_chinese": "keyword"
+  }
+}

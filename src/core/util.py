@@ -11,8 +11,10 @@ def coalesce(*args):
         The first non-None argument, or None if all are None.
     """
     for arg in args:
-        if arg is not None:
-            return arg
+        if callable(arg): result = arg()
+        else: result = arg
+        if result is not None:
+            return result
     return None
 
 def get(ls: list, index: int, default=None):

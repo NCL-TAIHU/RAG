@@ -13,7 +13,7 @@ import GPUtil
 import yaml
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('taihu')
 model_config = yaml.safe_load(open("config/model.yml", "r"))
 
 class BaseEmbedder:
@@ -99,13 +99,13 @@ class AutoModelEmbedder(DenseEmbedder):
             device_id = GPUtil.getFirstAvailable(order='memory', maxLoad=0.5, maxMemory=0.8)[0]
             self.device = torch.device(f"cuda:{device_id}")
         except Exception as e:
-            print(f"[WARN] No suitable GPU found: {e}. Falling back to CPU.")
+            logger.warning(f" No suitable GPU found: {e}. Falling back to CPU.")
             self.device = torch.device("cpu")
 
         self.model.to(self.device)
         self.model.eval()
         self.batch_size = 32  # Default batch size for embedding
-        print(f"Model {model_name} is on device: {self.device}")
+        logger.info(f"Model {model_name} is on device: {self.device}")
 
     def name(self) -> str:
         return self.model_name
@@ -159,12 +159,12 @@ class BGEM3Embedder(SparseEmbedder):
             device_id = GPUtil.getFirstAvailable(order='memory', maxLoad=0.5, maxMemory=0.8)[0]
             self.device = torch.device(f"cuda:{device_id}")
         except Exception as e:
-            print(f"[WARN] No suitable GPU found: {e}. Falling back to CPU.")
+            logger.warning(f"No suitable GPU found: {e}. Falling back to CPU.")
             self.device = torch.device("cpu")
 
         self.model.model.to(self.device)  # Make sure the internal model is moved to GPU
         self.vocab_size = len(self.model.tokenizer)
-        print(f"BGE Model is on device: {self.device}")
+        logger.info(f"BGE Model is on device: {self.device}")
 
     def name(self) -> str:
         return self.model_name

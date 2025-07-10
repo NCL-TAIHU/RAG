@@ -3,6 +3,7 @@ from src.core.document import Document, FieldType
 from src.core.filter import Filter
 from src.core.embedder import SparseEmbedder, DenseEmbedder
 from src.core.collection import FieldConfig, IndexConfig, CollectionConfig, CollectionOperator, CollectionBuilder
+from src.core.elastic import ElasticIndexBuilder, ElasticIndexConfig
 from src.core.util import get 
 from typing import List
 from pymilvus import (
@@ -16,8 +17,9 @@ import yaml
 import logging
 from src.core.vector_manager import DenseVectorManager, SparseVectorManager, BaseVectorManager
 from scipy.sparse import csr_array
+from src.core.util import coalesce
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('taihu')
 
 class SearchSpec(BaseModel):
     '''
@@ -97,7 +99,8 @@ class MilvusSearchEngine(SearchEngine):
         dense_vm: DenseVectorManager, 
         sparse_vm: SparseVectorManager, 
         collection_name: str = "milvus_collection",
-        alpha = 0.5
+        alpha = 0.5, 
+        force_rebuild: bool = False,
     ):
         self.sparse_embedder = sparse_embedder
         self.dense_embedder = dense_embedder
@@ -106,6 +109,7 @@ class MilvusSearchEngine(SearchEngine):
         self.dense_vm = dense_vm
         self.sparse_vm = sparse_vm
         self.alpha = alpha
+        self.force_rebuild = force_rebuild
 
         # Build fields from document metadata schema
         fields = [
@@ -144,9 +148,13 @@ class MilvusSearchEngine(SearchEngine):
         )
 
     def setup(self):
+        logger.info(f"Setting up Milvus collection: {self.config.collection_name}, force_rebuild={self.force_rebuild}")
         builder = CollectionBuilder.from_config(self.config)
         builder.connect()
-        self.collection = builder.build()
+        self.collection = (builder.build() 
+                           if self.force_rebuild 
+                           else coalesce(builder.get_existing, builder.build))
+
         self.operator = CollectionOperator(self.collection)
 
     def embed_query(self, query: str):
@@ -156,16 +164,29 @@ class MilvusSearchEngine(SearchEngine):
         return dense, sparse._getrow(0)
         
     def insert(self, documents: List[Document]):
-        dense_embeddings = self.dense_vm.get_doc_embeddings(documents)
-        sparse_embeddings = self.sparse_vm.get_doc_embeddings(documents)
+        # Avoid duplicates
+        existing_pks = set()
+        if len(documents) > 0:
+            keys = [doc.key() for doc in documents]
+            expr = f'pk in ["{"\",\"".join(keys)}"]'
+            self.collection.load()
+            results = self.collection.query(expr, output_fields=["pk"])
+            existing_pks = {res["pk"] for res in results}
+
+        new_docs = [doc for doc in documents if doc.key() not in existing_pks]
+        if not new_docs:
+            return
+        
+        dense_embeddings = self.dense_vm.get_doc_embeddings(new_docs)
+        sparse_embeddings = self.sparse_vm.get_doc_embeddings(new_docs)
         insert_dict = {
-                    "pk": [doc.key() for doc in documents],
+                    "pk": [doc.key() for doc in new_docs],
                     "sparse_vector": sparse_embeddings,
                     "dense_vector": dense_embeddings,
                 }
-        metadatas = [doc.metadata() for doc in documents]
+        metadatas = [doc.metadata() for doc in new_docs]
         for f_name in self.filter_cls.filter_fields():
-            insert_dict[f_name] = [get(metadatas[i][f_name].contents, 0, metadatas[i][f_name].type.default_value()) for i in range(len(documents))]
+            insert_dict[f_name] = [get(metadatas[i][f_name].contents, 0, metadatas[i][f_name].type.default_value()) for i in range(len(new_docs))]
         self.operator.buffered_insert([insert_dict[k] for k in self.config.field_names()])
 
     def _get_query(self, filter: Filter) -> Optional[str]:
@@ -214,7 +235,8 @@ class ElasticSearchEngine(SearchEngine):
         es_host: str,
         document_cls: Type[Document],
         filter_cls: Type[Filter],
-        es_index: str = "elastic_index"
+        es_index: str = "elastic_index",
+        force_rebuild: bool = False
     ):
         config = yaml.safe_load(open("config/elastic_search.yml", "r"))
         self.es = Elasticsearch(
@@ -226,24 +248,27 @@ class ElasticSearchEngine(SearchEngine):
         self.es_index = es_index
         self.document_cls = document_cls
         self.filter_cls = filter_cls
+        self.force_rebuild = force_rebuild
 
-    def setup(self):
-        if self.es.indices.exists(index=self.es_index):
-            self.es.indices.delete(index=self.es_index)
-
-        data = self.document_cls.metadata_schema()
-        mapping = {
-            "mappings": {
-                "properties": {
-                    data[f].name: {"type": "keyword" if data[f].type.value == "str" else "integer"}
-                    for f in self.filter_cls.filter_fields() + self.filter_cls.must_fields()
-                }
-            }
+        # Extract schema fields
+        schema = self.document_cls.metadata_schema()
+        self.field_types = {
+            schema[f].name: "keyword" if schema[f].type.value == "str" else "integer"
+            for f in self.filter_cls.filter_fields() + self.filter_cls.must_fields()
         }
-        self.es.indices.create(index=self.es_index, body=mapping)
+
+    def setup(self): 
+        # Build index if needed
+        builder = ElasticIndexBuilder(
+            es=self.es,
+            config=ElasticIndexConfig(es_index=self.es_index, fields=self.field_types)
+        )
+        builder.build(force_rebuild=self.force_rebuild)
 
     def insert(self, docs: List[Document]):
         for doc in docs:
+            if self.es.exists(index=self.es_index, id=doc.key()):
+                continue  # Skip duplicates
             data = doc.metadata()
             body = {
                 data[f].name: data[f].contents

@@ -1,7 +1,17 @@
 from src.run.factory import AppFactory
 from src.run.app import SearchApp
 from src.core.filter import NCLFilter, Filter
+from src.utils.logging import setup_logger
+import logging
 DATASET = "ncl"  # Default dataset to use
+
+logger = setup_logger(
+    name = 'taihu',
+    log_file = 'logs/output.log', 
+    console = True,
+    file = False,
+    level = logging.DEBUG
+)
 
 def interact(app: SearchApp): 
     print("\n📚 Welcome to the Interactive Search App!")
@@ -83,7 +93,7 @@ def test(app: SearchApp):
         print(response["generation"])
 
 def main():
-    print("🔎 Initializing SearchApp...")
+    logger.info("🔎 Initializing SearchApp...")
     app = AppFactory.from_default(name = "dev", dataset=DATASET).build()
     test(app)
     interact(app)
