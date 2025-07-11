@@ -16,7 +16,7 @@ from pydantic import BaseModel
 import yaml
 import logging
 from src.core.vector_manager import VectorManager
-from scipy.sparse import csr_array
+from scipy.sparse import csr_array, vstack
 from src.core.util import coalesce
 
 logger = logging.getLogger('taihu')
@@ -220,6 +220,7 @@ class HybridMilvusSearchEngine(SearchEngine):
                 values.extend([val] * len(dense_embeddings[doc.key()]))
             insert_dict[f_name] = values
 
+        insert_dict['sparse_vector'] = vstack(insert_dict['sparse_vector'])
         self.operator.buffered_insert([insert_dict[k] for k in self.config.field_names()])
 
     def _get_query(self, filter: Filter) -> Optional[str]:
@@ -308,7 +309,7 @@ class MilvusSearchEngine(SearchEngine):
                 )
             ]
         elif self.vector_type == "dense":
-            fields.append(FieldConfig(name="dense_vector", dtype=DataType.FLOAT_VECTOR, dim=self.embedder.get_dim()))
+            fields.append(FieldConfig(name="dense_vector", dtype=DataType.FLOAT_VECTOR, dim=self.vm.embedder.get_dim()))
             indexes = [
                 IndexConfig(
                     field_name="dense_vector",

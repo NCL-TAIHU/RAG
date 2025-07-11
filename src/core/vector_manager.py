@@ -6,7 +6,9 @@ from src.core.embedder import DenseEmbedder, SparseEmbedder, BaseEmbedder
 from scipy.sparse import csr_array
 from src.core.util import get_first_content
 from src.core.chunker import BaseChunker
+import yaml
 
+model_config = yaml.safe_load(open("config/model.yml", "r"))
 class VectorManager:
     def __init__(self, vector_store: BaseVS, embedder: BaseEmbedder, chunker: BaseChunker, dataset: str, channel: str):
         self.vector_store = vector_store
@@ -16,8 +18,8 @@ class VectorManager:
         self.channel = channel
         self.use_store = True
 
-        assert embedder.name() == vector_store.meta().model, \
-            f"Embedder model name ({embedder.name()}) does not match vector store model ({vector_store.meta().model})"
+        assert model_config[embedder.name()]['alias'] == vector_store.meta().model, \
+            f"Embedder model name ({model_config[embedder.name()]['alias']}) does not match vector store model ({vector_store.meta().model})"
         assert dataset == vector_store.meta().dataset, \
             f"Dataset ({dataset}) does not match vector store dataset ({vector_store.meta().dataset})"
         assert channel == vector_store.meta().channel, \

@@ -121,8 +121,6 @@ class AutoModelEmbedder(DenseEmbedder):
         '''
         Embeds a list of texts into a list of vectors.
         '''
-        device_id = GPUtil.getFirstAvailable(order='memory', maxLoad=0.5, maxMemory=0.8)[0]
-        self.device = torch.device(f"cuda:{device_id}")
         if texts is None or len(texts) == 0:
             logger.warning("No texts provided for embedding.")
             return []
@@ -159,7 +157,7 @@ class BGEM3Embedder(SparseEmbedder):
         self.model = BGEM3FlagModel(model_name, use_fp16=use_fp16)
         try:
             # Select the GPU with most free memory
-            device_id = GPUtil.getFirstAvailable(order='memory', maxLoad=0.5, maxMemory=0.8)[0]
+            device_id = GPUtil.getFirstAvailable(order='memory', maxLoad=0.95, maxMemory=0.8)[0]
             self.device = torch.device(f"cuda:{device_id}")
         except Exception as e:
             logger.warning(f"No suitable GPU found: {e}. Falling back to CPU.")

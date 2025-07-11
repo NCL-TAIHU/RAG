@@ -13,8 +13,11 @@ from scipy.sparse import csr_array, vstack, save_npz, load_npz
 import yaml
 from datetime import datetime
 from src.core.chunker import ChunkerMetaData
+import logging
 
 model_config = yaml.safe_load(open("config/model.yml", "r"))
+logger = logging.getLogger('taihu')
+
 class VSMetadata(BaseModel):
     """
     Metadata for the vector store, including the type of embeddings used.
@@ -108,7 +111,7 @@ class BaseVS(ABC):
         """
         meta_path = os.path.join(root, "metadata.json")
         if not os.path.exists(meta_path):
-            print(f"[ERROR] Metadata file not found at {meta_path}")
+            logger.exception(f" Metadata file not found at {meta_path}, returning none for vector store.")
             return None
 
         with open(meta_path, "r", encoding="utf-8") as f:
@@ -119,7 +122,7 @@ class BaseVS(ABC):
         elif metadata.embedding_type == "sparse":
             return FileBackedSparseVS.from_existing(root)
         else:
-            print(f"[ERROR] Unknown embedding type in metadata: {metadata.embedding_type}")
+            logger.error(f"Unknown embedding type in metadata: {metadata.embedding_type}")
             return None
 
 
@@ -220,7 +223,7 @@ class FileBackedDenseVS(DenseVS):
 
             return obj
         except Exception as e:
-            print(f"[ERROR] Failed to load FileBackedDenseVS: {e}")
+            logging.exception(f"Failed to load FileBackedDenseVS: {e},returning None")
             return None
 
 class FileBackedSparseVS(SparseVS):
@@ -291,5 +294,5 @@ class FileBackedSparseVS(SparseVS):
 
             return obj
         except Exception as e:
-            print(f"[ERROR] Failed to load FileBackedSparseVS from {root}: {e}")
+            logger.exception(f"Failed to load FileBackedSparseVS from {root}: {e}")
             return None
