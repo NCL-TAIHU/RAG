@@ -1,7 +1,7 @@
 from src.run.app import SearchApp
 from src.core.data import DataLoader
 from src.core.library import Library, InMemoryLibrary
-from src.core.search_engine import HybridSearchEngine, MilvusSearchEngine, ElasticSearchEngine, SearchEngine
+from src.core.search_engine import HybridSearchEngine, MilvusSearchEngine, ElasticSearchEngine, SearchEngine, HybridMilvusSearchEngine
 from src.core.document import Document
 from src.core.filter import Filter
 from src.core.embedder import SparseEmbedder, DenseEmbedder
@@ -9,16 +9,18 @@ from src.core.reranker import IdentityReranker
 from src.core.manager import Manager
 from src.core.router import Router
 from src.core.reranker import Reranker
-from src.core.vector_manager import BaseVectorManager, SparseVectorManager, DenseVectorManager
+from src.core.vector_manager import VectorManager
 from src.core.vector_store import SparseVS, DenseVS, BaseVS, FileBackedDenseVS, FileBackedSparseVS, VSMetadata
+from src.core.chunker import BaseChunker, LengthChunker
 from src.core.util import coalesce
 import yaml
 from typing import List
 import os
+from datetime import datetime
 
 data_config = yaml.safe_load(open("config/data.yml", "r", encoding="utf-8"))
 model_config = yaml.safe_load(open("config/model.yml", "r", encoding="utf-8"))
-ROOT = os.path.join(data_config["root"]["path"], 'vectors')
+ROOT = os.path.join(data_config["root"]["path"])
 
 class AppFactory:
     def __init__(self, 
@@ -55,36 +57,83 @@ class AppFactory:
             FILT_CLS = Filter.from_dataset(dataset)  # Default filter class based on dataset
             SPARSE_EMBEDDER_NAME = "BAAI/bge-m3"
             DENSE_EMBEDDER_NAME = "sentence-transformers/all-MiniLM-L6-v2" 
+            CHANNEL = "abstract_chinese"
             sparse_embedder: SparseEmbedder = SparseEmbedder.from_default(SPARSE_EMBEDDER_NAME)
             dense_embedder: DenseEmbedder = DenseEmbedder.from_default(DENSE_EMBEDDER_NAME)
-            SPARSE_VS_ROOT = os.path.join(ROOT, dataset, SPARSE_EMBEDDER_NAME)
-            DENSE_VS_ROOT = os.path.join(ROOT, dataset, DENSE_EMBEDDER_NAME) 
-            sparse_vs: SparseVS = coalesce(FileBackedSparseVS.from_existing(SPARSE_VS_ROOT), 
-                                           FileBackedSparseVS(root=SPARSE_VS_ROOT, metadata=VSMetadata.from_model(SPARSE_EMBEDDER_NAME))) 
-            dense_vs: DenseVS = coalesce(FileBackedDenseVS.from_existing(DENSE_VS_ROOT),
-                                        FileBackedDenseVS(root=DENSE_VS_ROOT, metadata=VSMetadata.from_model(DENSE_EMBEDDER_NAME)))
-            sparse_vm = SparseVectorManager(sparse_vs, sparse_embedder)
-            dense_vm = DenseVectorManager(dense_vs, dense_embedder)
-            #dense_vm.use_store = False
-            vengine = MilvusSearchEngine(
-                sparse_embedder, 
-                dense_embedder, 
-                document_cls=DOC_CLS, 
-                filter_cls=FILT_CLS, 
-                dense_vm=dense_vm,
-                sparse_vm=sparse_vm, 
-                collection_name=f"{dataset}_{model_config[SPARSE_EMBEDDER_NAME]['alias']}_{model_config[DENSE_EMBEDDER_NAME]['alias']}", 
-                alpha = 0.5
-            ) #vector search engine
-            rengine = ElasticSearchEngine(
+            now = datetime.now().isoformat()
+            chunker = LengthChunker(chunk_length=512)
+            chunker_type = chunker.metadata().chunker_type
+
+            SPARSE_VS_ROOT = os.path.join(ROOT, dataset, SPARSE_EMBEDDER_NAME, CHANNEL, chunker_type)
+            DENSE_VS_ROOT = os.path.join(ROOT, dataset, DENSE_EMBEDDER_NAME, CHANNEL, chunker_type) 
+            sparse_vs: SparseVS = coalesce(lambda: FileBackedSparseVS.from_existing(SPARSE_VS_ROOT), #lambda is to delay evaluation
+                                           lambda: FileBackedSparseVS(root=SPARSE_VS_ROOT, metadata=VSMetadata(
+                                               embedding_type=model_config[SPARSE_EMBEDDER_NAME]["type"],
+                                               dataset=dataset,
+                                               channel=CHANNEL,
+                                               chunker_meta=chunker.metadata(),
+                                               model=model_config[SPARSE_EMBEDDER_NAME]["alias"],
+                                               created_at=now,
+                                               updated_at=now
+                                           ))) 
+            dense_vs: DenseVS = coalesce(lambda: FileBackedDenseVS.from_existing(DENSE_VS_ROOT),
+                                        lambda: FileBackedDenseVS(root=DENSE_VS_ROOT, metadata=VSMetadata(
+                                            embedding_type=model_config[DENSE_EMBEDDER_NAME]["type"],
+                                            dataset=dataset,
+                                            channel=CHANNEL,
+                                            chunker_meta=chunker.metadata(),
+                                            model=model_config[DENSE_EMBEDDER_NAME]["alias"],
+                                            created_at=now,
+                                            updated_at=now
+                                        )))
+            svm = VectorManager(
+                vector_store=sparse_vs, 
+                embedder=sparse_embedder, 
+                chunker=chunker, 
+                dataset=dataset,
+                channel=CHANNEL
+            )
+            dvm = VectorManager(
+                vector_store=dense_vs, 
+                embedder=dense_embedder, 
+                chunker=chunker, 
+                dataset=dataset,
+                channel=CHANNEL
+            )
+            sparse_milvus = MilvusSearchEngine(
+                vector_type="sparse",
+                vector_manager=svm,
+                document_cls=DOC_CLS,
+                filter_cls=FILT_CLS,
+                force_rebuild=True
+            )
+            dense_milvus = MilvusSearchEngine(
+                vector_type="dense",
+                vector_manager=dvm,
+                document_cls=DOC_CLS,
+                filter_cls=FILT_CLS,
+                force_rebuild=True
+            )
+
+            hybrid_milvus = HybridMilvusSearchEngine(
+                document_cls=DOC_CLS,
+                filter_cls=FILT_CLS,
+                dense_vm=dvm,
+                sparse_vm=svm,
+                alpha=0.5,  # Default alpha value for hybrid search
+                force_rebuild=True
+            )
+
+            elastic = ElasticSearchEngine(
                 "https://localhost:9201", 
                 document_cls=DOC_CLS, 
                 filter_cls=FILT_CLS, 
                 es_index=f"{dataset}"
             ) #relational search engine
+
             engine = HybridSearchEngine(
-                relational_search_engine=rengine,
-                vector_search_engine=vengine
+                relational_search_engine=elastic,
+                vector_search_engine=hybrid_milvus
             )
             library: Library = InMemoryLibrary()
             dataloader = DataLoader.from_default(dataset)

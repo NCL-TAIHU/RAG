@@ -72,3 +72,43 @@ Factory is the control center.
 Core problem: How do we assign configurations to specific search engines without overcomplicating the search api? 
 Solution: In factory, we tell all the search engines their way of fulfilling the search requests (including alphas and other hyperparameters), 
 So that when the system is running, the search request can be simple, under the factory-constructed environment. 
+
+How do we control the content channel for each document?
+Make the representative content of each document a variable, that can be dynamically stored. 
+If we were to allow one document to have multiple content channels. 
+
+1. Does each document need to have the same amount of channels? (If we do title as channel, maybe not, but we may want to support future chunking.)
+2. Are cross-channel vectors put into the same collection? (idea: Same model, Same collection. But we need to handle primary key duplication problem.)
+model/
+    dataset/
+        <channel>.json: 
+            {id: str, (<chunk id>: <vector>)*}
+
+** chunk size can be a metadata in the vector store** 
+
+Channel and chunks should two separate concepts, because it makes sense to insert multiple chunks
+into the same vector collection, and each document can have multiple chunks. 
+
+Each channel should be one file, which allows one vector store to mount on it. Each vector store can 
+be seen as a meaningful unit of vector collection. 
+
+<channel, chunk number> determines a specific embedding for a document. 
+
+Search engine should still return unit as document. But it can use vector stores with chunk embeddings of different chunk sizes. 
+The user can control the versioning and chunk size via metadata and force rebuild. 
+Chunk handling should be handled internally by the search engine, according to it's specifications. 
+
+
+Okay great. Recall that in our document abstraction, we defined multiple channels that outputs semantic texts that represents a document. In previous versions, we simply used the first channel. Now, we want to introduce some more flexibility and concepts: configurable channeling and chunking. Specifically, each channel of each document can have multiple chunks, and since it makes sense to put multiple chunks of the same channel into the same vector collection, we want each vector store to be a channel of specific dataset embedded. Specifically, the vector store data storage should be like this: 
+model/
+    dataset/
+        <channel>.json: 
+            {id: str, (<chunk id>: <vector>)*}. 
+Now, we want to change several things. In essence we want to change the contract between search engine and vector managers, and hence vector stores. Because now each document (channel set) can have multiple chunks, the manager should return {(<doc_id>: {<chunk id>: vector}, )*} instead of  List[List[float]], and so should the vector store (This aligns with its internal data storage). When the search engine receives it, it concatenates the nested index information into the primary key that corresponds to a vector, and inserts it in the database. It then does the grouping and fulfills the search engine contract of returning a list of documents rather than a list of chunks. To summarize, we want to: 
+1. The vector store data storage and output format. 
+2. Change the vector manager format. 
+3. Change insert and add grouping for search engine. 
+We would do it step by step, and I would give you the original code to change, don't come up with random things. I want you to understand the instructions first. Is this clear enough?  
+
+The vector manager should handle the channeling, namely, what strings to pass to the chunker. It can retain the channel name as an attribute and assert its validity by comparing the document type content schema. 
+No, I told you that the chunker should be purely utility class that chunks strings, like this: 
