@@ -28,7 +28,7 @@ class LLMConfig(BaseModel):
             return cls(
                 model=model_name,
                 trust_remote_code=True,
-                download_dir="/tmp/model_cache",
+                download_dir="/home/share/model_cache",
                 tensor_parallel_size=1,
                 gpu_memory_utilization=0.8,  # Limit GPU memory utilization
                 max_model_len=8192,          # Limit context length
@@ -38,7 +38,7 @@ class LLMConfig(BaseModel):
             return cls(
                 model=model_name,
                 trust_remote_code=True,
-                download_dir="/tmp/model_cache",
+                download_dir="/home/share/model_cache",
                 tensor_parallel_size=1,
                 gpu_memory_utilization=0.8,  # Limit GPU memory utilization
                 max_model_len=4096,          # Limit context length
@@ -48,10 +48,20 @@ class LLMConfig(BaseModel):
             return cls(
                 model=model_name,
                 trust_remote_code=True,
-                download_dir="/tmp/model_cache",
+                download_dir="/home/share/model_cache",
                 tensor_parallel_size=1,
                 gpu_memory_utilization=0.8,  # Limit GPU memory utilization
                 max_model_len=8192,          # Limit context length
+                quantization="fp8"
+            )
+        elif model_name == 'meta-llama/Llama-3.2-3B-Instruct':
+            return cls(
+                model=model_name,
+                trust_remote_code=True,
+                download_dir="/home/share/model_cache",
+                tensor_parallel_size=1,
+                gpu_memory_utilization=0.8, 
+                max_model_len=8192,
                 quantization="fp8"
             )
         else:
