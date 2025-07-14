@@ -121,8 +121,6 @@ class AutoModelEmbedder(DenseEmbedder):
         '''
         Embeds a list of texts into a list of vectors.
         '''
-        device_id = GPUtil.getFirstAvailable(order='memory', maxLoad=0.5, maxMemory=0.8)[0]
-        self.device = torch.device(f"cuda:{device_id}")
         if texts is None or len(texts) == 0:
             logger.warning("No texts provided for embedding.")
             return []

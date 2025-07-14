@@ -12,7 +12,7 @@ from pymilvus import (
 from pymilvus.client.abstract import SearchResult
 from pydantic import BaseModel
 from tqdm import tqdm
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Union
 from scipy.sparse import csr_array
 import os
 import json
@@ -142,35 +142,10 @@ class CollectionOperator:
             batch_data = [field[i:i + self.buffer_size] for field in data]
             self.collection.insert(batch_data)
     
-    def search_dense(
+    def search(
             self, 
-            query_vector: List[float], 
-            limit: int = 10, 
-            output_fields: List[str] = ["pk"], 
-            expr: Optional[str] = None
-        ):
-        '''
-        Performs a dense vector search in the collection.
-        query_vector: List[float], a dense vector to search for.
-        limit: int, the maximum number of results to return.
-        output_fields: List[str], fields to return in the results.
-        expr: Optional[str], an expression to filter the results.
-        '''
-        self.collection.load()
-        search_params = {"metric_type": "IP", "params": {"nprobe": 10}}
-        results = self.collection.search(
-            data=[query_vector],
-            anns_field="dense_vector",
-            param=search_params,
-            limit=limit,
-            expr=expr, 
-            output_fields=output_fields
-        )
-        return results[0] if results else []
-    
-    def search_sparse(
-            self, 
-            query_vector: csr_array, 
+            query_vector: Union[csr_array, List[float]], 
+            anns_field: str, #dense_vector or sparse_vector
             limit: int = 10, 
             output_fields: List[str] = ["pk"], 
             expr: Optional[str] = None
@@ -186,7 +161,7 @@ class CollectionOperator:
         search_params = {"metric_type": "IP", "params": {}}
         results = self.collection.search(
             data=query_vector,
-            anns_field="sparse_vector",
+            anns_field=anns_field,
             param=search_params,
             limit=limit,
             expr=expr, 

@@ -12,152 +12,188 @@ from typing import List, Dict, Optional
 from scipy.sparse import csr_array, vstack, save_npz, load_npz
 import yaml
 from datetime import datetime
+from src.core.chunker import ChunkerMetaData
+import logging
 
 model_config = yaml.safe_load(open("config/model.yml", "r"))
+logger = logging.getLogger('taihu')
+
 class VSMetadata(BaseModel):
     """
     Metadata for the vector store, including the type of embeddings used.
     """
     embedding_type: str  # e.g., "dense" or "sparse"
+    dataset: str #the dataset this vector store is associated with
+    channel: str # content channel 
+    chunker_meta: ChunkerMetaData
     model: str # Name of the model used for embeddings
     description: Optional[str] = None  # Optional description of the vector store
     version: Optional[str] = "1.0"  # Version of the vector store schema
-    created_at: Optional[str] = None  # Timestamp of creation
-    updated_at: Optional[str] = None  # Timestamp of last update
+    created_at: str# Timestamp of creation
+    updated_at: str# Timestamp of last update
 
-    @classmethod
-    def from_model(cls, model: str, description: Optional[str] = None) -> 'VSMetadata':
-        embedding_type = model_config[model]["type"]
-        #set to current time in ISO format
-        now = datetime.now().isoformat()
-        return cls(
-            embedding_type=embedding_type,
-            model=model,
-            description=description,
-            created_at=now,
-            updated_at=now
-        )
 
-class BaseVS:
-    def insert(self, ids: List[str], embeddings: Any):
+class BaseVS(ABC):
+    @abstractmethod
+    def insert(self, batch: Dict[str, Any]):
         """
-        Inserts a list of IDs and their corresponding embeddings into the vector store.
-        :param ids: A list of document IDs to insert.
-        :param embeddings: A list of embeddings corresponding to the provided IDs.
+        Inserts a batch of document embeddings into the vector store.
+
+        :param batch: A dictionary mapping doc_id to embeddings:
+                      - Dense: Dict[str, List[List[float]]]
+                      - Sparse: Dict[str, csr_array] (shape = [num_chunks, dim])
         """
-        raise NotImplementedError("This method should be overridden by subclasses.")
-    def has(self, id: str) -> bool: 
+        pass
+
+    @abstractmethod
+    def has(self, id: str) -> bool:
         """
-        Checks if the vector store contains a specific ID.
-        :param id: The document ID to check.
-        :return: True if the ID exists in the vector store, False otherwise.
+        Checks whether the vector store contains a specific document.
+
+        :param id: Document ID
+        :return: True if present, False otherwise
         """
-        raise NotImplementedError("This method should be overridden by subclasses.")
-    
-    def save(self): 
-        """
-        Saves the current state of the vector store.
-        This method should be overridden by subclasses if needed.
-        """
-        raise NotImplementedError("This method should be overridden by subclasses.")
-    
+        pass
+
+    @abstractmethod
     def retrieve(self, ids: List[str]) -> Any:
         """
-        Retrieves embeddings from the vector store based on their IDs.
-        :param ids: A list of document IDs to retrieve.
-        :return: A list of embeddings corresponding to the provided IDs.
+        Retrieves embeddings for the given document IDs.
+
+        :param ids: List of document IDs
+        :requires: ids exist in the vector store
+        :return:
+            - Dense: Dict[str, List[List[float]]]
+            - Sparse: Dict[str, csr_array] (shape = [num_chunks, dim])
         """
-        raise NotImplementedError("This method should be overridden by subclasses.")
-    
-    def meta(self) -> VSMetadata: 
+        pass
+
+    @abstractmethod
+    def save(self):
         """
-        Returns the metadata of the vector store.
-        :return: An instance of VSMetadata containing information about the vector store.
+        Persists the vector store to disk (includes vectors, index, metadata).
         """
-        raise NotImplementedError("This method should be overridden by subclasses.")
-    
+        pass
+
+    @abstractmethod
+    def meta(self) -> 'VSMetadata':
+        """
+        Returns the metadata of this vector store.
+
+        :return: VSMetadata instance
+        """
+        pass
+
     @classmethod
-    def create(cls, type: str, root: str, metadata: VSMetadata) -> 'BaseVS':
+    def create(cls, type: str, root: str, metadata: 'VSMetadata') -> 'BaseVS':
+        """
+        Factory method for creating a new vector store instance.
+
+        :param type: 'dense' or 'sparse'
+        :param root: Root directory for saving data
+        :param metadata: Metadata object
+        :return: Instance of DenseVS or SparseVS
+        """
         if type == "dense":
             return FileBackedDenseVS(root=root, metadata=metadata)
         elif type == "sparse":
             return FileBackedSparseVS(root=root, metadata=metadata)
         else:
             raise ValueError(f"Unknown vector store type: {type}. Supported: 'dense', 'sparse'.")
-        
+
     @classmethod
     def from_existing(cls, root: str) -> Optional['BaseVS']:
         """
-        Factory method to create a vector store instance from an existing root directory.
-        :param root: The root directory where the vector store data is stored.
-        :return: An instance of FileBackedDenseVS or FileBackedSparseVS, or None if loading fails.
+        Loads an existing vector store from the given root directory.
+
+        :param root: Directory containing metadata.json
+        :return: FileBackedDenseVS or FileBackedSparseVS, or None on failure
         """
         meta_path = os.path.join(root, "metadata.json")
         if not os.path.exists(meta_path):
-            print(f"[ERROR] Metadata file not found at {meta_path}")
+            logger.exception(f" Metadata file not found at {meta_path}, returning none for vector store.")
             return None
-        
+
         with open(meta_path, "r", encoding="utf-8") as f:
             metadata = VSMetadata(**json.load(f))
-        
+
         if metadata.embedding_type == "dense":
             return FileBackedDenseVS.from_existing(root)
         elif metadata.embedding_type == "sparse":
             return FileBackedSparseVS.from_existing(root)
         else:
-            print(f"[ERROR] Unknown embedding type in metadata: {metadata.embedding_type}")
+            logger.error(f"Unknown embedding type in metadata: {metadata.embedding_type}")
             return None
 
+
 class DenseVS(BaseVS):
-    def insert(self, ids, embeddings: List[List[float]]): 
-        raise NotImplementedError("This method should be overridden by subclasses.")
-    
-    def retrieve(self, ids: List[str]) -> List[List[float]]:
+    @abstractmethod
+    def insert(self, batch: Dict[str, List[List[float]]]):
         """
-        Retrieves a list of embeddings from the vector store based on their IDs.
-        :param ids: A list of document IDs to retrieve.
-        :return: A list of embeddings corresponding to the provided IDs.
+        Inserts dense embeddings for multiple documents.
+
+        :param batch: Dict of doc_id → List of chunk vectors (List[List[float]])
         """
-        raise NotImplementedError("This method should be overridden by subclasses.")
-    
+        pass
+
+    @abstractmethod
+    def retrieve(self, ids: List[str]) -> Dict[str, List[List[float]]]:
+        """
+        Retrieves dense chunk embeddings per document.
+
+        :param ids: List of doc_ids
+        :return: Dict of doc_id → List of chunk vectors
+        """
+        pass
+
+
 class SparseVS(BaseVS):
-    def insert(self, ids, embeddings: csr_array): 
-        raise NotImplementedError("This method should be overridden by subclasses.")
-    
-    def retrieve(self, ids: List[str]) -> csr_array:
+    @abstractmethod
+    def insert(self, batch: Dict[str, csr_array]):
         """
-        Retrieves a sparse matrix of embeddings from the vector store based on their IDs.
-        :param ids: A list of document IDs to retrieve.
-        :return: A sparse matrix corresponding to the provided IDs.
+        Inserts sparse embeddings for multiple documents.
+
+        :param batch: Dict of doc_id → csr_array (shape: [num_chunks, dim])
         """
-        raise NotImplementedError("This method should be overridden by subclasses.")
+        pass
 
+    @abstractmethod
+    def retrieve(self, ids: List[str]) -> Dict[str, csr_array]:
+        """
+        Retrieves sparse chunk embeddings per document.
 
+        :param ids: List of doc_ids
+        :return: Dict of doc_id → csr_array (shape: [num_chunks, dim])
+        """
+        pass
 
 class FileBackedDenseVS(DenseVS):
     def __init__(self, root: str, metadata: VSMetadata):
-        self.root = root
-        self.vector_path = os.path.join(root, "vectors.jsonl")
-        self.meta_path = os.path.join(root, "metadata.json")
-        self.vectors: Dict[str, List[float]] = {}
         self._metadata = metadata
+        self.root = root
+        self.vector_path = os.path.join(self.root, "vectors.jsonl")
+        self.meta_path = os.path.join(self.root, "metadata.json")
+        self.vectors: Dict[str, List[List[float]]] = {}  # doc_id -> List[chunk vectors]
 
     def has(self, id: str) -> bool:
         return id in self.vectors
 
-    def insert(self, ids: List[str], embeddings: List[List[float]]):
-        for doc_id, emb in zip(ids, embeddings):
-            self.vectors[doc_id] = emb
+    def insert(self, batch: Dict[str, List[List[float]]]):
+        for doc_id, chunk_vectors in batch.items():
+            self.vectors[doc_id] = chunk_vectors
 
-    def retrieve(self, ids: List[str]) -> List[List[float]]:
-        return [self.vectors[doc_id] for doc_id in ids]
+    def retrieve(self, ids: List[str]) -> Dict[str, List[List[float]]]:
+        assert all(doc_id in self.vectors for doc_id in ids), "Attempting to retrieve non-existent document ids"
+        return {doc_id: self.vectors[doc_id] for doc_id in ids}
 
     def save(self):
         self._metadata.updated_at = datetime.now().isoformat()
         os.makedirs(self.root, exist_ok=True)
+
         with open(self.vector_path, "w", encoding="utf-8") as f:
-            for doc_id, vector in self.vectors.items():
-                f.write(json.dumps({"id": doc_id, "vector": vector}) + "\n")
+            for doc_id, vectors in self.vectors.items():
+                f.write(json.dumps({doc_id: vectors}) + "\n")
+
         with open(self.meta_path, "w", encoding="utf-8") as f:
             json.dump(self._metadata.model_dump(), f, indent=2)
 
@@ -166,63 +202,66 @@ class FileBackedDenseVS(DenseVS):
 
     @classmethod
     def from_existing(cls, root: str) -> Optional['FileBackedDenseVS']:
-        meta_path = os.path.join(root, "metadata.json")
-        vector_path = os.path.join(root, "vectors.jsonl")
-
-        try: 
-            if not os.path.exists(meta_path):
+        try:
+            # Find and load metadata first
+            base_meta_path = os.path.join(root, "metadata.json")
+            if not os.path.exists(base_meta_path):
                 raise FileNotFoundError(f"Missing metadata.json in {root}")
-            with open(meta_path, "r", encoding="utf-8") as f:
+
+            with open(base_meta_path, "r", encoding="utf-8") as f:
                 metadata = VSMetadata(**json.load(f))
 
             obj = cls(root=root, metadata=metadata)
+            obj.vector_path = os.path.join(root, "vectors.jsonl")
+            obj.meta_path = os.path.join(root, "metadata.json")
 
-            if os.path.exists(vector_path):
-                with open(vector_path, "r", encoding="utf-8") as f:
+            if os.path.exists(obj.vector_path):
+                with open(obj.vector_path, "r", encoding="utf-8") as f:
                     for line in f:
                         entry = json.loads(line)
-                        obj.vectors[entry["id"]] = entry["vector"]
+                        obj.vectors.update(entry)
 
             return obj
         except Exception as e:
-            print(f"[ERROR] Failed to load FileBackedDenseVS from {root}: {e}")
+            logging.exception(f"Failed to load FileBackedDenseVS: {e},returning None")
             return None
-    
+
 class FileBackedSparseVS(SparseVS):
     def __init__(self, root: str, metadata: VSMetadata):
         self.root = root
-        self.matrix_path = os.path.join(root, "vectors.npz")
-        self.ids_path = os.path.join(root, "ids.txt")
-        self.meta_path = os.path.join(root, "metadata.json")
-        self.id_to_index: Dict[str, int] = {}
-        self.matrix: Optional[csr_array] = None
         self._metadata = metadata
+        self.matrix_path = os.path.join(root, f"vectors_matrix.npz")
+        self.index_path = os.path.join(root, f"index.jsonl")
+        self.meta_path = os.path.join(root, "metadata.json")
+        self.rows: Dict[str, csr_array] = {}  # doc_id → (n_chunks x dim) csr_array
 
     def has(self, id: str) -> bool:
-        return id in self.id_to_index
+        return id in self.rows
 
-    def insert(self, ids: List[str], embeddings: csr_array):
-        if self.matrix is None:
-            self.matrix = embeddings
-            self.id_to_index = {doc_id: i for i, doc_id in enumerate(ids)}
-        else:
-            self.matrix = vstack([self.matrix, embeddings])
-            offset = len(self.id_to_index)
-            for i, doc_id in enumerate(ids):
-                self.id_to_index[doc_id] = offset + i
+    def insert(self, batch: Dict[str, csr_array]):
+        for doc_id, mat in batch.items():
+            self.rows[doc_id] = mat
 
-    def retrieve(self, ids: List[str]) -> csr_array:
-        indices = [self.id_to_index[doc_id] for doc_id in ids]
-        return self.matrix[indices]
+    def retrieve(self, ids: List[str]) -> Dict[str, csr_array]:
+        assert all(doc_id in self.rows for doc_id in ids), "Attempting to retrieve non-existent document ids"
+        return {
+            doc_id: self.rows[doc_id] for doc_id in ids 
+        }
 
     def save(self):
         self._metadata.updated_at = datetime.now().isoformat()
         os.makedirs(self.root, exist_ok=True)
-        if self.matrix is not None:
-            save_npz(self.matrix_path, self.matrix)
-            with open(self.ids_path, "w", encoding="utf-8") as f:
-                for doc_id in sorted(self.id_to_index, key=self.id_to_index.get):
-                    f.write(doc_id + "\n")
+
+        doc_order = list(self.rows.keys())
+        mat_list = [self.rows[doc_id] for doc_id in doc_order]
+        full_matrix = vstack(mat_list)
+        save_npz(self.matrix_path, full_matrix)
+
+        with open(self.index_path, "w", encoding="utf-8") as f:
+            for doc_id in doc_order:
+                n_rows = self.rows[doc_id].shape[0]
+                f.write(json.dumps({doc_id: n_rows}) + "\n")
+
         with open(self.meta_path, "w", encoding="utf-8") as f:
             json.dump(self._metadata.model_dump(), f, indent=2)
 
@@ -231,25 +270,29 @@ class FileBackedSparseVS(SparseVS):
 
     @classmethod
     def from_existing(cls, root: str) -> Optional['FileBackedSparseVS']:
-        meta_path = os.path.join(root, "metadata.json")
-        matrix_path = os.path.join(root, "vectors.npz")
-        ids_path = os.path.join(root, "ids.txt")
-
-        try: 
+        try:
+            meta_path = os.path.join(root, "metadata.json")
+            matrix_path = os.path.join(root, "vectors_matrix.npz")
+            index_path = os.path.join(root, "index.jsonl")
+            
             if not os.path.exists(meta_path):
                 raise FileNotFoundError(f"Missing metadata.json in {root}")
+
             with open(meta_path, "r", encoding="utf-8") as f:
                 metadata = VSMetadata(**json.load(f))
 
             obj = cls(root=root, metadata=metadata)
+            if os.path.exists(matrix_path) and os.path.exists(index_path):
+                full_matrix = load_npz(matrix_path)
+                row_ptr = 0
+                with open(index_path, "r", encoding="utf-8") as f:
+                    for line in f:
+                        entry: Dict = json.loads(line)
+                        for doc_id, n_rows in entry.items():
+                            obj.rows[doc_id] = full_matrix[row_ptr:row_ptr + n_rows]
+                            row_ptr += n_rows
 
-            if os.path.exists(matrix_path):
-                obj.matrix = load_npz(matrix_path)
-            if os.path.exists(ids_path):
-                with open(ids_path, "r", encoding="utf-8") as f:
-                    obj.id_to_index = {line.strip(): i for i, line in enumerate(f)}
             return obj
-        
         except Exception as e:
-            print(f"[ERROR] Failed to load FileBackedSparseVS from {root}: {e}")
+            logger.exception(f"Failed to load FileBackedSparseVS from {root}: {e}")
             return None
