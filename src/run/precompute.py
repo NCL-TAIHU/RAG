@@ -1,4 +1,4 @@
-from src.core.vector_store import FileBackedDenseVS, VSMetadata, BaseVS
+from src.core.vector_set import FileBackedDenseVS, VSMetadata, BaseVS
 from src.core.embedder import BGEM3Embedder, DenseEmbedder, BaseEmbedder
 from src.core.data import DataLoader
 from src.core.util import get_first_content, coalesce

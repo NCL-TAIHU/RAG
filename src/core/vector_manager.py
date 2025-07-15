@@ -1,32 +1,25 @@
 from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Union
 from src.core.document import Document
-from src.core.vector_store import DenseVS, SparseVS, BaseVS, VSMetadata
+from src.core.vector_set import DenseVS, SparseVS, BaseVS
 from src.core.embedder import DenseEmbedder, SparseEmbedder, BaseEmbedder
 from scipy.sparse import csr_array
 from src.core.util import get_first_content
 from src.core.chunker import BaseChunker
+from src.core.schema import VectorSetConfig
 import yaml
 
 model_config = yaml.safe_load(open("config/model.yml", "r"))
 class VectorManager:
-    def __init__(self, vector_store: BaseVS, embedder: BaseEmbedder, chunker: BaseChunker, dataset: str, channel: str):
-        self.vector_store = vector_store
-        self.embedder = embedder
-        self.chunker = chunker
-        self.dataset = dataset
-        self.channel = channel
+    def __init__(self, vector_set: BaseVS):
+        self.vector_set = vector_set
+        config = vector_set.config()
+        self.embedder: BaseEmbedder = BaseEmbedder.from_config(config.embedder)
+        self.chunker: BaseChunker = BaseChunker.from_config(config.chunker)
+        self.dataset = config.dataset
+        self.channel = config.channel
         self.use_store = True
 
-        assert model_config[embedder.name()]['alias'] == vector_store.meta().model, \
-            f"Embedder model name ({model_config[embedder.name()]['alias']}) does not match vector store model ({vector_store.meta().model})"
-        assert dataset == vector_store.meta().dataset, \
-            f"Dataset ({dataset}) does not match vector store dataset ({vector_store.meta().dataset})"
-        assert channel == vector_store.meta().channel, \
-            f"Channel ({channel}) does not match vector store channel ({vector_store.meta().channel})"
-        assert chunker.metadata() == vector_store.meta().chunker_meta, \
-            f"Chunker metadata ({chunker.metadata()}) does not match vector store chunker" 
-        
     def get_raw_embedding(self, texts: List[str]) -> Union[List[List[float]], csr_array]:
         """
         Returns the raw embeddings for the given texts.
@@ -61,7 +54,7 @@ class VectorManager:
         to_retrieve_ids = []
 
         for doc_id, chunks in zip(doc_ids, chunked_texts):
-            if self.use_store and self.vector_store.has(doc_id):
+            if self.use_store and self.vector_set.has(doc_id):
                 to_retrieve_ids.append(doc_id)
             else:
                 to_embed_ids.append(doc_id)
@@ -69,18 +62,13 @@ class VectorManager:
 
         # Load from store
         if to_retrieve_ids:
-            retrieved = self.vector_store.retrieve(to_retrieve_ids)
+            retrieved = self.vector_set.retrieve(to_retrieve_ids)
             embeddings.update(retrieved)
 
         # Compute new embeddings
         if to_embed:
             flat_chunks = [chunk for chunks in to_embed for chunk in chunks]
             embedded = self.embedder.embed(flat_chunks)
-
-            if self.vector_store.meta().embedding_type == "sparse":
-                assert isinstance(embedded, csr_array), "Sparse embedder must return csr_array"
-            else:
-                assert isinstance(embedded, list) and isinstance(embedded[0], list), "Dense embedder must return List[List[float]]"
             pointer = 0
             for doc_id, chunks in zip(to_embed_ids, to_embed):
                 n = len(chunks)
@@ -88,12 +76,12 @@ class VectorManager:
                 pointer += n
 
         return embeddings
-
-    def get_vs_metadata(self) -> VSMetadata:
+    
+    def get_vs_config(self) -> VectorSetConfig:
         """
-        Returns the metadata of the vector store.
+        Returns the configuration of the vector set.
         """
-        return self.vector_store.meta()
+        return self.vector_set.config()
     
     def get_channel(self) -> str:
         return self.channel

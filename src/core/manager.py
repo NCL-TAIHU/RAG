@@ -3,8 +3,8 @@ from src.core.document import Document
 from typing import List
 from src.core.library import Library
 from src.core.search_engine import Filter, SearchEngine
-from src.core.router import Router
-from src.core.reranker import Reranker
+from src.core.router import BaseRouter
+from src.core.reranker import BaseReranker
 import logging 
 
 logger = logging.getLogger('taihu')
@@ -18,13 +18,14 @@ class Manager:
     def __init__(self, 
                  library: Library, 
                  search_engines: List[SearchEngine], 
-                 reranker: Reranker, 
-                 router_name: str = "simple"
+                 reranker: BaseReranker, 
+                 router: BaseRouter
         ): 
         self.library: Library = library
-        self.reranker: Reranker = reranker
+        self.reranker: BaseReranker = reranker
         self.search_engines: List[SearchEngine] = search_engines
-        self.router: Router = Router.from_default(router_name, [engine.spec() for engine in search_engines])
+        self.router: BaseRouter = router
+        self.router.load_specs(search_engines)
 
     def fetch(self, query: str, filter: Filter, limit: int) -> List[Document]:
         engine = self.search_engines[self.router.route(filter)]

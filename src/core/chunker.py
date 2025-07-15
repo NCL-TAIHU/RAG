@@ -2,14 +2,7 @@ from abc import ABC, abstractmethod
 from typing import List, Dict, Any
 from src.core.document import Document
 from pydantic import BaseModel
-
-class ChunkerMetaData(BaseModel):
-    """
-    Metadata for chunking operations, including the chunker type and any additional parameters.
-    """
-    chunker_type: str  # e.g., "length", "semantic"
-    params: Dict[str, Any] = {}  # Additional parameters for the chunker
-
+from src.core.schema import ChunkerConfig, LengthChunkerConfig, SentenceChunkerConfig
 
 class BaseChunker(ABC):
     """
@@ -30,8 +23,22 @@ class BaseChunker(ABC):
         """
         pass
 
+    @classmethod
+    def from_config(cls, config: ChunkerConfig) -> 'BaseChunker':
+        """
+        Factory method to create a BaseChunker instance from a configuration.
+        :param config: Configuration object containing chunker parameters.
+        :return: An instance of BaseChunker.
+        """
+        if config.type == "length_chunker":
+            return LengthChunker.from_config(config)
+        elif config.type == "sentence_chunker":
+            return SentenceChunker.from_config(config)
+        else:
+            raise ValueError(f"Unknown chunker type: {config.type}. Supported types: 'simple_chunker', 'sentence_chunker'.")
+
     @abstractmethod
-    def metadata(self) -> ChunkerMetaData:
+    def config(self) -> ChunkerConfig:
         """
         Returns metadata about the chunking operation, such as the type of chunker used and any parameters.
         """
@@ -51,12 +58,15 @@ class LengthChunker(BaseChunker):
         """
         return [[doc[i:i + self.chunk_length] for i in range(0, len(doc), self.chunk_length)] for doc in docs]
     
-    def metadata(self) -> ChunkerMetaData:
+    @classmethod
+    def from_config(cls, config: LengthChunkerConfig) -> 'LengthChunker':
         """
-        Returns metadata about the chunking operation.
+        Factory method to create a LengthChunker instance from a configuration.
+        :param config: Configuration object containing chunker parameters.
+        :return: An instance of LengthChunker.
         """
-        return ChunkerMetaData(chunker_type="length", params={"chunk_length": self.chunk_length})
-
+        return cls(chunk_length=config.chunk_size)
+    
 class SentenceChunker(BaseChunker):
     """
     Chunker that splits documents into sentences.
@@ -77,9 +87,11 @@ class SentenceChunker(BaseChunker):
         elif self.language == "zh": 
             return [[sentence.strip() for sentence in doc.split('。')] for doc in docs]
 
-    def metadata(self) -> ChunkerMetaData:
+    @classmethod
+    def from_config(cls, config: SentenceChunkerConfig) -> 'SentenceChunker':
         """
-        Returns metadata about the chunking operation.
+        Factory method to create a SentenceChunker instance from a configuration.
+        :param config: Configuration object containing chunker parameters.
+        :return: An instance of SentenceChunker.
         """
-        return ChunkerMetaData(chunker_type="sentence", params={"language": self.language})  
-    
+        return cls(language=config.language)

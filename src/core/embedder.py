@@ -11,6 +11,7 @@ import contextlib
 import io
 import GPUtil
 import yaml
+from src.core.schema import EmbedderConfig, AutoModelEmbedderConfig, BGEEmbedderConfig
 
 
 logger = logging.getLogger('taihu')
@@ -31,6 +32,15 @@ class BaseEmbedder:
     def name(self) -> str: 
         raise NotImplementedError("This method should be overridden by subclasses.")
     
+    @classmethod
+    def from_config(cls, config: EmbedderConfig) -> 'BaseEmbedder': 
+        if config.type == "auto_model": 
+            return AutoModelEmbedder.from_config(config)
+        elif config.type == "bge":
+            return BGEM3Embedder.from_config(config)
+        else:
+            raise ValueError(f"Unknown embedder type: {config.type}. Supported types: 'auto_model', 'bge'.")
+
     @classmethod
     def from_default(cls, model_name: str) -> 'BaseEmbedder':
         if model_config[model_name]["type"] == "dense":
@@ -107,6 +117,15 @@ class AutoModelEmbedder(DenseEmbedder):
         self.batch_size = 32  # Default batch size for embedding
         logger.info(f"Model {model_name} is on device: {self.device}")
 
+    @classmethod
+    def from_config(cls, config: AutoModelEmbedderConfig) -> 'AutoModelEmbedder':
+        """
+        Factory method to create an AutoModelEmbedder instance from a configuration.
+        :param config: Configuration object containing model parameters.
+        :return: An instance of AutoModelEmbedder.
+        """
+        return cls(config.model_name)
+
     def name(self) -> str:
         return self.model_name
     
@@ -167,6 +186,15 @@ class BGEM3Embedder(SparseEmbedder):
         self.vocab_size = len(self.model.tokenizer)
         logger.info(f"BGE Model is on device: {self.device}")
 
+    @classmethod
+    def from_config(cls, config: BGEEmbedderConfig) -> 'BGEM3Embedder':
+        """
+        Factory method to create a BGEM3Embedder instance from a configuration.
+        :param config: Configuration object containing model parameters.
+        :return: An instance of BGEM3Embedder.
+        """
+        return cls(config.model_name)
+    
     def name(self) -> str:
         return self.model_name
     

@@ -4,6 +4,8 @@ from src.core.filter import Filter
 from src.core.embedder import BaseEmbedder, SparseEmbedder, DenseEmbedder
 from src.core.collection import FieldConfig, IndexConfig, CollectionConfig, CollectionOperator, CollectionBuilder
 from src.core.elastic import ElasticIndexBuilder, ElasticIndexConfig
+from src.core.vector_set import BaseVS
+from src.core.schema import SearchEngineConfig, MilvusConfig, HybridMilvusConfig, ElasticSearchConfig, SequentialConfig
 from src.core.util import get 
 from typing import List
 from pymilvus import (
@@ -57,33 +59,68 @@ class SearchEngine:
         """
         raise NotImplementedError("This method should be overridden by subclasses.")
     
+    @classmethod
+    def from_config(cls, config: SearchEngineConfig) -> 'SearchEngine':
+        """
+        Factory method to create a SearchEngine instance from a configuration.
+        :param config: Configuration object containing search engine parameters.
+        :return: An instance of SearchEngine.
+        """
+        if isinstance(config, MilvusConfig):
+            return MilvusSearchEngine.from_config(config)
+        elif isinstance(config, HybridMilvusConfig):
+            return HybridMilvusSearchEngine.from_config(config)
+        elif isinstance(config, ElasticSearchConfig):
+            return ElasticSearchEngine.from_config(config)
+        elif isinstance(config, SequentialConfig):
+            return Sequential.from_config(config)
+        else:
+            raise ValueError(f"Unknown search engine type: {config.type}. Supported types: 'milvus', 'hybrid_milvus', 'elastic_search', 'sequential'.")
+        
     def spec(self) -> SearchSpec: 
         raise NotImplementedError("This method should be overridden by subclasses.")
 
-class HybridSearchEngine(SearchEngine):
+class Sequential(SearchEngine):
     """
-    A search engine that combines both relational and vector search capabilities.
-    It uses a relational search engine for metadata filtering and a vector search engine for semantic search.
+    A compositional search engine where each engine refines the result of the previous.
+    The first engine runs unconstrained; all others receive a filtered ID set.
     """
-    def __init__(self, relational_search_engine: SearchEngine, vector_search_engine: SearchEngine):
-        self.relational_search_engine = relational_search_engine
-        self.vector_search_engine = vector_search_engine
+    def __init__(self, engines: List[SearchEngine]):
+        assert len(engines) >= 2, "SequentialSearchEngine needs at least two engines"
+        self.engines = engines
+
+    @classmethod
+    def from_config(cls, config: SequentialConfig) -> 'Sequential':
+        """
+        Factory method to create a Sequential instance from a configuration.
+        :param config: Configuration object containing sequential search engine parameters.
+        :return: An instance of Sequential.
+        """
+        engines = [SearchEngine.from_config(engine_cfg) for engine_cfg in config.engines]
+        return cls(engines=engines)
 
     def setup(self):
-        self.relational_search_engine.setup()
-        self.vector_search_engine.setup()
+        for engine in self.engines:
+            engine.setup()
 
     def insert(self, docs: List[Document]):
-        self.relational_search_engine.insert(docs)
-        self.vector_search_engine.insert(docs)
+        for engine in self.engines:
+            engine.insert(docs)
 
     def search(self, query: str, filter: Filter, limit: int = 10) -> List[str]:
-        filtered_ids = self.relational_search_engine.search(query, filter)
-        subset_filter = filter.model_copy(update={"ids": filtered_ids})
-        return self.vector_search_engine.search(query, subset_filter, limit=limit)
+        current_filter = filter
+        for i, engine in enumerate(self.engines):
+            results = engine.search(query, current_filter, limit=limit)
+            # Feed filtered results to the next stage
+            if i < len(self.engines) - 1:
+                current_filter = filter.model_copy(update={"ids": results})
+        return results
     
+
     def spec(self) -> SearchSpec:
-        return SearchSpec(name="hybrid_search_engine", optimal_for="strong")
+        names = " → ".join(e.spec().name for e in self.engines)
+        return SearchSpec(name=f"sequential({names})", optimal_for="cascaded")
+
 
 class HybridMilvusSearchEngine(SearchEngine):
     document_cls: Type[Document]
@@ -91,41 +128,41 @@ class HybridMilvusSearchEngine(SearchEngine):
 
     def __init__(
         self,
-        document_cls: Type[Document],
-        filter_cls: Type[Filter],
         dense_vm: VectorManager, 
         sparse_vm: VectorManager, 
         alpha = 0.5, 
         force_rebuild: bool = False,
     ):
-        self.document_cls = document_cls
-        self.filter_cls = filter_cls
+        dataset = dense_vm.get_vs_config().dataset
+        self.document_cls = Document.from_dataset(dataset)
+        self.filter_cls = Filter.from_dataset(dataset)
         self.dense_vm = dense_vm
         self.sparse_vm = sparse_vm
         self.alpha = alpha
         self.force_rebuild = force_rebuild
 
-        assert self.dense_vm.get_vs_metadata().dataset == self.sparse_vm.get_vs_metadata().dataset, \
+        assert self.dense_vm.get_vs_config().dataset == self.sparse_vm.get_vs_config().dataset, \
             "Dense and sparse vector managers must have the same dataset"
 
-        assert self.dense_vm.get_vs_metadata().channel == self.sparse_vm.get_vs_metadata().channel, \
+        assert self.dense_vm.get_vs_config().channel == self.sparse_vm.get_vs_config().channel, \
             "Dense and sparse vector managers must have the same channel"
         
-        assert self.dense_vm.get_vs_metadata().chunker_meta == self.sparse_vm.get_vs_metadata().chunker_meta, \
+        assert self.dense_vm.get_vs_config().chunker == self.sparse_vm.get_vs_config().chunker, \
             "Dense and sparse vector managers must have the same chunker metadata"
 
         fields = [
             FieldConfig(name="pk", dtype=DataType.VARCHAR, is_primary=True, max_length=100)
         ]
 
-        vs_meta = dense_vm.get_vs_metadata()
-        dense_model = vs_meta.model
-        sparse_model = sparse_vm.get_vs_metadata().model
-        dataset = vs_meta.dataset
-        channel = vs_meta.channel
-        chunker_type = vs_meta.chunker_meta.chunker_type
+        vs_config = dense_vm.get_vs_config()
+        dense_model = vs_config.embedder.model_name
+        sparse_model = sparse_vm.get_vs_config().embedder.model_name
+        dataset = vs_config.dataset
+        channel = vs_config.channel
 
-        self.collection_name = f"{dense_model}_{sparse_model}_{dataset}_{channel}_{chunker_type}_hybrid_collection"
+        #collection name has to be different enough so that collections don't collide. But even if collections of different 
+        #config but same name do collide, the collection builder would handle it can build a new one. 
+        self.collection_name = f"{dense_model}_{sparse_model}_{dataset}_{channel}_hybrid_collection" 
 
 
         metadata_schema = self.document_cls.metadata_schema()
@@ -160,6 +197,38 @@ class HybridMilvusSearchEngine(SearchEngine):
                 )
             ]
         )
+
+    @classmethod
+    def from_config(cls, config: HybridMilvusConfig) -> 'HybridMilvusSearchEngine':
+        assert config.dense_vector_set.embedder.embedding_type == "dense", \
+            "Dense vector set must use a dense embedder"
+        assert config.sparse_vector_set.embedder.embedding_type == "sparse", \
+            "Sparse vector set must use a sparse embedder"
+        
+        assert config.dense_vector_set.dataset == config.sparse_vector_set.dataset, \
+            "Dense and sparse vector sets must have the same dataset"
+        
+        assert config.dense_vector_set.channel == config.sparse_vector_set.channel, \
+            "Dense and sparse vector sets must have the same channel"
+        assert config.dense_vector_set.chunker == config.sparse_vector_set.chunker, \
+            "Dense and sparse vector sets must have the same chunker configuration"
+        
+        dense_vs = coalesce(lambda: BaseVS.from_existing(config.dense_vector_set), 
+                            lambda: BaseVS.from_config(config.dense_vector_set))
+        
+        sparse_vs = coalesce(lambda: BaseVS.from_existing(config.sparse_vector_set),    
+                            lambda: BaseVS.from_config(config.sparse_vector_set))
+        
+        dense_vm = VectorManager(dense_vs)
+        sparse_vm = VectorManager(sparse_vs)
+
+        
+        return cls(
+            dense_vm=dense_vm,
+            sparse_vm=sparse_vm,
+            alpha=config.alpha,
+        )
+        
 
     def setup(self):
         logger.info(f"Setting up Milvus collection: {self.config.collection_name}, force_rebuild={self.force_rebuild}")
@@ -269,24 +338,21 @@ class MilvusSearchEngine(SearchEngine):
 
     def __init__(
         self,
-        vector_type: str,
         vector_manager: VectorManager,
-        document_cls: Type[Document],
-        filter_cls: Type[Filter],
         force_rebuild: bool = False,
     ):
-        self.vector_type = vector_type  # "dense" or "sparse"
         self.vm = vector_manager
-        self.document_cls = document_cls
-        self.filter_cls = filter_cls
+        self.dataset = vector_manager.get_vs_config().dataset
+        self.vector_type = self.vm.get_vs_config().embedder.embedding_type
+        self.document_cls = Document.from_dataset(self.dataset)
+        self.filter_cls = Filter.from_dataset(self.dataset)
         self.force_rebuild = force_rebuild
 
-        vs_meta = vector_manager.get_vs_metadata()
-        model = vs_meta.model
-        dataset = vs_meta.dataset
-        channel = vs_meta.channel
-        chunker_type = vs_meta.chunker_meta.chunker_type
-        self.collection_name = f"{model}_{dataset}_{channel}_{chunker_type}_{vector_type}_collection"
+        vs_config = vector_manager.get_vs_config()
+        model = vs_config.embedder.model_name 
+        dataset = vs_config.dataset
+        channel = vs_config.channel
+        self.collection_name = f"{model}_{dataset}_{channel}_collection"
 
         fields = [
             FieldConfig(name="pk", dtype=DataType.VARCHAR, is_primary=True, max_length=100)
@@ -329,6 +395,22 @@ class MilvusSearchEngine(SearchEngine):
             indexes=indexes
         )
 
+    @classmethod
+    def from_config(cls, config: MilvusConfig) -> 'MilvusSearchEngine':
+        """
+        Factory method to create a MilvusSearchEngine instance from a configuration.
+        :param config: Configuration object containing Milvus search engine parameters.
+        :return: An instance of MilvusSearchEngine.
+        """
+        vs = coalesce(lambda: BaseVS.from_existing(config.vector_set), 
+                      lambda: BaseVS.from_config(config.vector_set))
+        
+        vm = VectorManager(vs)
+        
+        return cls(
+            vector_manager=vm
+        )
+    
     def setup(self):
         logger.info(f"Setting up Milvus collection: {self.config.collection_name}, force_rebuild={self.force_rebuild}")
         builder = CollectionBuilder.from_config(self.config)
@@ -432,9 +514,8 @@ class ElasticSearchEngine(SearchEngine):
 
     def __init__(
         self,
+        dataset: str, 
         es_host: str,
-        document_cls: Type[Document],
-        filter_cls: Type[Filter],
         es_index: str = "elastic_index",
         force_rebuild: bool = False
     ):
@@ -446,8 +527,8 @@ class ElasticSearchEngine(SearchEngine):
             ca_certs=config["ca_certs"]
         )
         self.es_index = es_index
-        self.document_cls = document_cls
-        self.filter_cls = filter_cls
+        self.document_cls = Document.from_dataset(dataset)
+        self.filter_cls = Filter.from_dataset(dataset)
         self.force_rebuild = force_rebuild
 
         # Extract schema fields
@@ -456,6 +537,19 @@ class ElasticSearchEngine(SearchEngine):
             schema[f].name: "keyword" if schema[f].type.value == "str" else "integer"
             for f in self.filter_cls.filter_fields() + self.filter_cls.must_fields()
         }
+
+    @classmethod
+    def from_config(cls, config: ElasticSearchConfig) -> 'ElasticSearchEngine':
+        """
+        Factory method to create an ElasticSearchEngine instance from a configuration.
+        :param config: Configuration object containing ElasticSearch parameters.
+        :return: An instance of ElasticSearchEngine.
+        """
+        return cls(
+            dataset=config.dataset,
+            es_host=config.es_host,
+            es_index=config.es_index,
+        )
 
     def setup(self): 
         # Build index if needed

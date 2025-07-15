@@ -2,8 +2,9 @@ from src.core.document import Document
 import torch
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 from typing import List, Tuple
+from src.core.schema import RerankerConfig
 
-class Reranker: 
+class BaseReranker: 
     """
     Interface for reranking models.
     """
@@ -20,14 +21,26 @@ class Reranker:
         """
         raise NotImplementedError("Reranker is an abstract class and must be implemented by subclasses.")
     
-class IdentityReranker(Reranker):
+    @classmethod
+    def from_config(cls, config: RerankerConfig) -> 'BaseReranker':
+        """
+        Factory method to create a Reranker instance from a configuration.
+        :param config: Configuration object containing reranker parameters.
+        :return: An instance of Reranker.
+        """
+        if config.type == "identity":
+            return IdentityReranker()
+        elif config.type == "auto_model":
+            return AutoModelReranker.from_config(config)
+
+class IdentityReranker(BaseReranker):
     """
     A simple reranker that returns documents in the order they were provided.
     """
     def rerank(self, query: str, documents: List[Document]) -> List[Document]:
         return documents
 
-class AutoModelReranker(Reranker):
+class AutoModelReranker(BaseReranker):
     """
     A reranker that uses a pretrained transformer-based cross-encoder model
     to score (query, document) pairs and sort the documents accordingly.

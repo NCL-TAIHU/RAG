@@ -1,0 +1,63 @@
+.layout {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+  
+  /* ⬇️ This determines sidebar size, not Sidebar itself */
+  .sidebar-container {
+    flex-shrink: 0;
+    box-sizing: border-box;
+    border-right: 1px solid #ddd;
+    background-color: #f4f4f4;
+    /* Remove fixed width */
+    width: auto;
+  }
+  
+  .main {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 2rem;
+    box-sizing: border-box;
+  }
+
+  .hamburger {
+    display: none;
+    font-size: 1.5rem;
+    padding: 1rem;
+    border: none;
+    background: none;
+    cursor: pointer;
+  }
+  
+ /* Mobile styles */
+@media (max-width: 768px) {
+    .layout {
+      flex-direction: column;
+    }
+  
+    .hamburger {
+        display: block;
+        font-size: 2rem;          /* Increased size for visibility */
+        padding: 1rem 1.5rem;     /* Larger tap area */
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: #333;              /* Optional: set icon color */
+        margin-left: 1rem;        /* Optional: align with content */
+    }
+  
+    .sidebar-container {
+      display: none;
+      width: 100%;
+      border-right: none;
+      border-bottom: 1px solid #ddd;
+    }
+  
+    .sidebar-container.open {
+      display: block;
+    }
+  }
+  
+  
+  

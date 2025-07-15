@@ -1,0 +1,25 @@
+.sidebar {
+    height: 100%;
+    background-color: #f4f4f4;
+    padding: 1.5rem;
+    border-right: 1px solid #ddd;
+    box-sizing: border-box;
+  }
+  
+  .nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .sidebar a {
+    color: #333;
+    font-size: 1.5rem;
+    text-decoration: none;
+  }
+  
+  .sidebar a.active {
+    font-weight: bold;
+    color: #0070f3;
+  }
+  

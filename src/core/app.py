@@ -4,8 +4,11 @@ from src.core.data import DataLoader
 from src.core.prompt import PromptBuilder
 from src.core.document import Document, NCLDocument
 from src.core.filter import Filter, NCLFilter
-from src.core.search_engine import SearchEngine, Filter, HybridSearchEngine, MilvusSearchEngine, ElasticSearchEngine
+from src.core.search_engine import SearchEngine, Filter, MilvusSearchEngine, ElasticSearchEngine
 from src.core.library import Library, InMemoryLibrary, FilesLibrary
+from src.core.schema import AppConfig
+from src.core.router import BaseRouter
+from src.core.reranker import BaseReranker, IdentityReranker
 from src.utils.logging import setup_logger
 from scipy.sparse import csr_array
 from typing import List
@@ -72,3 +75,17 @@ class SearchApp:
             "generation": generation
         }
     
+    @classmethod
+    def from_config(cls, config: AppConfig) -> 'SearchApp':
+        dataloader = DataLoader.from_default(dataset=config.dataset)
+        search_engines = [SearchEngine.from_config(sconfig) for sconfig in config.search_engines]
+        router = BaseRouter.from_config(config.router)
+        reranker = BaseReranker.from_config(config.reranker)
+        library = InMemoryLibrary()
+        manager = Manager(
+            library, 
+            search_engines, 
+            reranker, 
+            router
+        )
+        return cls(dataloader, manager, max_files=config.max_files)

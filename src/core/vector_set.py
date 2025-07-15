@@ -12,25 +12,25 @@ from typing import List, Dict, Optional
 from scipy.sparse import csr_array, vstack, save_npz, load_npz
 import yaml
 from datetime import datetime
-from src.core.chunker import ChunkerMetaData
+from src.core.schema import VectorSetConfig
 import logging
 
 model_config = yaml.safe_load(open("config/model.yml", "r"))
 logger = logging.getLogger('taihu')
 
-class VSMetadata(BaseModel):
-    """
-    Metadata for the vector store, including the type of embeddings used.
-    """
-    embedding_type: str  # e.g., "dense" or "sparse"
-    dataset: str #the dataset this vector store is associated with
-    channel: str # content channel 
-    chunker_meta: ChunkerMetaData
-    model: str # Name of the model used for embeddings
-    description: Optional[str] = None  # Optional description of the vector store
-    version: Optional[str] = "1.0"  # Version of the vector store schema
-    created_at: str# Timestamp of creation
-    updated_at: str# Timestamp of last update
+# class VSconfig(BaseModel):
+#     """
+#     config for the vector store, including the type of embeddings used.
+#     """
+#     embedding_type: str  # e.g., "dense" or "sparse"
+#     dataset: str #the dataset this vector store is associated with
+#     channel: str # content channel 
+#     chunker_meta: Chunkerconfig
+#     model: str # Name of the model used for embeddings
+#     description: Optional[str] = None  # Optional description of the vector store
+#     version: Optional[str] = "1.0"  # Version of the vector store schema
+#     created_at: str# Timestamp of creation
+#     updated_at: str# Timestamp of last update
 
 
 class BaseVS(ABC):
@@ -71,58 +71,63 @@ class BaseVS(ABC):
     @abstractmethod
     def save(self):
         """
-        Persists the vector store to disk (includes vectors, index, metadata).
+        Persists the vector store to disk (includes vectors, index, config).
         """
         pass
 
     @abstractmethod
-    def meta(self) -> 'VSMetadata':
+    def config(self) -> VectorSetConfig:
         """
-        Returns the metadata of this vector store.
+        Returns the config of this vector store.
 
-        :return: VSMetadata instance
+        :return: VectorSetConfig instance
         """
         pass
 
     @classmethod
-    def create(cls, type: str, root: str, metadata: 'VSMetadata') -> 'BaseVS':
+    def from_config(cls, config: VectorSetConfig) -> 'BaseVS':
         """
-        Factory method for creating a new vector store instance.
+        Factory method to create a vector store instance from a configuration.
 
-        :param type: 'dense' or 'sparse'
-        :param root: Root directory for saving data
-        :param metadata: Metadata object
-        :return: Instance of DenseVS or SparseVS
+        :param config: VectorSetConfig object containing parameters.
+        :return: An instance of BaseVS.
         """
-        if type == "dense":
-            return FileBackedDenseVS(root=root, metadata=metadata)
-        elif type == "sparse":
-            return FileBackedSparseVS(root=root, metadata=metadata)
+        embedding_type = config.embedder.embedding_type
+        if embedding_type == "dense":
+            return FileBackedDenseVS(
+                root=config.root, 
+                config=config
+            )
+        elif embedding_type == "sparse":
+            return FileBackedSparseVS(
+                root=config.root, 
+                config=config
+            )
         else:
-            raise ValueError(f"Unknown vector store type: {type}. Supported: 'dense', 'sparse'.")
-
+            raise ValueError(f"Unknown embedding type: {embedding_type}. Supported: 'dense', 'sparse'.")
+    
     @classmethod
-    def from_existing(cls, root: str) -> Optional['BaseVS']:
+    def from_existing(cls, config: VectorSetConfig) -> Optional['BaseVS']:
         """
         Loads an existing vector store from the given root directory.
 
-        :param root: Directory containing metadata.json
+        :param root: Directory containing config.json
         :return: FileBackedDenseVS or FileBackedSparseVS, or None on failure
         """
-        meta_path = os.path.join(root, "metadata.json")
-        if not os.path.exists(meta_path):
-            logger.exception(f" Metadata file not found at {meta_path}, returning none for vector store.")
+        config_path = os.path.join(config.root, "config.json")
+        if not os.path.exists(config_path):
+            logger.exception(f" config file not found at {config_path}, returning none for vector store.")
             return None
 
-        with open(meta_path, "r", encoding="utf-8") as f:
-            metadata = VSMetadata(**json.load(f))
+        with open(config_path, "r", encoding="utf-8") as f:
+            config = VectorSetConfig(**json.load(f))
 
-        if metadata.embedding_type == "dense":
+        if config.embedder.embedding_type == "dense":
             return FileBackedDenseVS.from_existing(root)
-        elif metadata.embedding_type == "sparse":
+        elif config.embedder.embedding_type == "sparse":
             return FileBackedSparseVS.from_existing(root)
         else:
-            logger.error(f"Unknown embedding type in metadata: {metadata.embedding_type}")
+            logger.error(f"Unknown embedding type in config: {config.embedder.embedding_type}. Supported: 'dense', 'sparse'.")
             return None
 
 
@@ -168,11 +173,11 @@ class SparseVS(BaseVS):
         pass
 
 class FileBackedDenseVS(DenseVS):
-    def __init__(self, root: str, metadata: VSMetadata):
-        self._metadata = metadata
+    def __init__(self, root: str, config: VectorSetConfig):
+        self._config = config
         self.root = root
         self.vector_path = os.path.join(self.root, "vectors.jsonl")
-        self.meta_path = os.path.join(self.root, "metadata.json")
+        self.config_path = os.path.join(self.root, "config.json")
         self.vectors: Dict[str, List[List[float]]] = {}  # doc_id -> List[chunk vectors]
 
     def has(self, id: str) -> bool:
@@ -187,33 +192,34 @@ class FileBackedDenseVS(DenseVS):
         return {doc_id: self.vectors[doc_id] for doc_id in ids}
 
     def save(self):
-        self._metadata.updated_at = datetime.now().isoformat()
         os.makedirs(self.root, exist_ok=True)
 
         with open(self.vector_path, "w", encoding="utf-8") as f:
             for doc_id, vectors in self.vectors.items():
                 f.write(json.dumps({doc_id: vectors}) + "\n")
 
-        with open(self.meta_path, "w", encoding="utf-8") as f:
-            json.dump(self._metadata.model_dump(), f, indent=2)
+        with open(self.config_path, "w", encoding="utf-8") as f:
+            json.dump(self._config.model_dump(), f, indent=2)
 
-    def meta(self) -> VSMetadata:
-        return self._metadata
+    def meta(self) -> VectorSetConfig:
+        return self._config
 
     @classmethod
-    def from_existing(cls, root: str) -> Optional['FileBackedDenseVS']:
+    def from_existing(cls, config: VectorSetConfig) -> Optional['FileBackedDenseVS']:
         try:
-            # Find and load metadata first
-            base_meta_path = os.path.join(root, "metadata.json")
-            if not os.path.exists(base_meta_path):
-                raise FileNotFoundError(f"Missing metadata.json in {root}")
+            # Find and load config first
+            base_config_path = os.path.join(config.root, "config.json")
+            if not os.path.exists(base_config_path):
+                raise FileNotFoundError(f"Missing config.json in {config.root}")
 
-            with open(base_meta_path, "r", encoding="utf-8") as f:
-                metadata = VSMetadata(**json.load(f))
+            with open(base_config_path, "r", encoding="utf-8") as f:
+                existin_config = VectorSetConfig(**json.load(f))
 
-            obj = cls(root=root, metadata=metadata)
-            obj.vector_path = os.path.join(root, "vectors.jsonl")
-            obj.meta_path = os.path.join(root, "metadata.json")
+            assert config == existin_config, "Config mismatch when loading FileBackedDenseVS"
+
+            obj = cls(root=config.root, config=config)
+            obj.vector_path = os.path.join(config.root, "vectors.jsonl")
+            obj.config_path = os.path.join(config.root, "config.json")
 
             if os.path.exists(obj.vector_path):
                 with open(obj.vector_path, "r", encoding="utf-8") as f:
@@ -227,12 +233,12 @@ class FileBackedDenseVS(DenseVS):
             return None
 
 class FileBackedSparseVS(SparseVS):
-    def __init__(self, root: str, metadata: VSMetadata):
+    def __init__(self, root: str, config: VectorSetConfig):
         self.root = root
-        self._metadata = metadata
+        self._config = config
         self.matrix_path = os.path.join(root, f"vectors_matrix.npz")
         self.index_path = os.path.join(root, f"index.jsonl")
-        self.meta_path = os.path.join(root, "metadata.json")
+        self.config_path = os.path.join(root, "config.json")
         self.rows: Dict[str, csr_array] = {}  # doc_id → (n_chunks x dim) csr_array
 
     def has(self, id: str) -> bool:
@@ -249,7 +255,6 @@ class FileBackedSparseVS(SparseVS):
         }
 
     def save(self):
-        self._metadata.updated_at = datetime.now().isoformat()
         os.makedirs(self.root, exist_ok=True)
 
         doc_order = list(self.rows.keys())
@@ -262,26 +267,27 @@ class FileBackedSparseVS(SparseVS):
                 n_rows = self.rows[doc_id].shape[0]
                 f.write(json.dumps({doc_id: n_rows}) + "\n")
 
-        with open(self.meta_path, "w", encoding="utf-8") as f:
-            json.dump(self._metadata.model_dump(), f, indent=2)
+        with open(self.config_path, "w", encoding="utf-8") as f:
+            json.dump(self._config.model_dump(), f, indent=2)
 
-    def meta(self) -> VSMetadata:
-        return self._metadata
+    def meta(self) -> VectorSetConfig:
+        return self._config
 
     @classmethod
-    def from_existing(cls, root: str) -> Optional['FileBackedSparseVS']:
+    def from_existing(cls, config: VectorSetConfig) -> Optional['FileBackedSparseVS']:
         try:
-            meta_path = os.path.join(root, "metadata.json")
-            matrix_path = os.path.join(root, "vectors_matrix.npz")
-            index_path = os.path.join(root, "index.jsonl")
+            config_path = os.path.join(config.root, "config.json")
+            matrix_path = os.path.join(config.root, "vectors_matrix.npz")
+            index_path = os.path.join(config.root, "index.jsonl")
             
-            if not os.path.exists(meta_path):
-                raise FileNotFoundError(f"Missing metadata.json in {root}")
+            if not os.path.exists(config_path):
+                raise FileNotFoundError(f"Missing config.json in {config.root}")
 
-            with open(meta_path, "r", encoding="utf-8") as f:
-                metadata = VSMetadata(**json.load(f))
+            with open(config_path, "r", encoding="utf-8") as f:
+                existing_config = VectorSetConfig(**json.load(f))
 
-            obj = cls(root=root, metadata=metadata)
+            assert config == existing_config, "Config mismatch when loading FileBackedSparseVS"
+            obj = cls(root=config.root, config=config)
             if os.path.exists(matrix_path) and os.path.exists(index_path):
                 full_matrix = load_npz(matrix_path)
                 row_ptr = 0
@@ -294,5 +300,5 @@ class FileBackedSparseVS(SparseVS):
 
             return obj
         except Exception as e:
-            logger.exception(f"Failed to load FileBackedSparseVS from {root}: {e}")
+            logger.exception(f"Failed to load FileBackedSparseVS from {config.root}: {e}")
             return None
