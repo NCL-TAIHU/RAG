@@ -123,9 +123,9 @@ class BaseVS(ABC):
             config = VectorSetConfig(**json.load(f))
 
         if config.embedder.embedding_type == "dense":
-            return FileBackedDenseVS.from_existing(root)
+            return FileBackedDenseVS.from_existing(config)
         elif config.embedder.embedding_type == "sparse":
-            return FileBackedSparseVS.from_existing(root)
+            return FileBackedSparseVS.from_existing(config)
         else:
             logger.error(f"Unknown embedding type in config: {config.embedder.embedding_type}. Supported: 'dense', 'sparse'.")
             return None

@@ -73,9 +73,13 @@ SearchEngineConfig = Union[
 ]
 
 
-# ---------------- App Metadata ----------------
+# ---------------- App Config ----------------
 
 class AppConfig(BaseModel):
+    '''
+    A image of an existing app that is ready to be activated. 
+    Front-end form data has to be enriched by backend with weave urls, ids, timestamps, and vector store roots to reach this stage. 
+    '''
     id: str 
     name: str
     dataset: str

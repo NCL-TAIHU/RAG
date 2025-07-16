@@ -11,7 +11,7 @@ from enum import Enum
 # Add the project root directory to Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from src.run.factory import AppFactory
+from src.run.adaptor import AppFactory
 from src.core.app import SearchApp
 from src.core.document import Document
 from src.core.filter import Filter

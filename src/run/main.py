@@ -1,4 +1,4 @@
-from src.run.factory import AppFactory
+from src.run.adaptor import AppFactory
 from src.core.app import SearchApp
 from src.core.filter import NCLFilter, Filter
 from src.utils.logging import setup_logger

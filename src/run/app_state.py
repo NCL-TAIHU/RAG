@@ -1,6 +1,6 @@
 import os
 import json
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 from src.core.app import SearchApp
 from src.core.schema import AppConfig  # Your unified config schema
 from src.core.document import Document
@@ -23,7 +23,6 @@ class AppState:
     def __init__(self):
         self._apps: Dict[str, SearchApp] = {}
         self._configs: Dict[str, AppConfig] = {}
-
     
     def load_all_metadata(self):
         if not os.path.exists(APP_METADATA_DIR):
@@ -43,10 +42,10 @@ class AppState:
     def list_apps(self) -> List[str]:
         return list(self._configs.keys())
 
-    def get_metadata(self, name: str) -> AppConfig:
-        return self._configs[name]
+    def get_config(self, id: str) -> AppConfig:
+        return self._configs[id]
 
-    def create_app(self, config: AppConfig):
+    def register_app(self, config: AppConfig):
         self._configs[config.id] = config
 
         path = os.path.join(APP_METADATA_DIR, f"{config.name}_{config.id}.yml")
@@ -56,6 +55,7 @@ class AppState:
     def activate_app(self, id: str):
         config = self._configs[id]
         app = SearchApp.from_config(config)
+        app.setup()
         self._apps[id] = app
 
     def get_app(self, name: str) -> SearchApp:

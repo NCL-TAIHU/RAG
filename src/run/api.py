@@ -4,7 +4,8 @@ from pydantic import ValidationError
 from src.run.app_state import AppState
 from src.core.schema import AppConfig
 from contextlib import asynccontextmanager
-
+from adaptor import assemble_app_config 
+from typing import Dict, Any, List
 app = FastAPI()
 app_state = AppState()
 
@@ -29,17 +30,18 @@ app = FastAPI(lifespan=lifespan)
 def list_apps():
     return app_state.list_apps()
 
-@app.get("/app_state/app/{name}")
-def get_app_metadata(name: str):
+@app.get("/app_state/app/{id}")
+def get_app_metadata(id: str):
     try:
-        return app_state.get_metadata(name)
+        return app_state.get_config(id)
     except KeyError:
         raise HTTPException(status_code=404, detail="App not found")
 
 @app.post("/app_state/app")
-def create_app(metadata: AppConfig):
+def create_app(form: Dict[str, Any]):
     try:
-        app_state.create_app(metadata)
+        config = assemble_app_config(form)
+        app_state.register_app(config)
         return {"status": "created"}
     except ValidationError as e:
         raise HTTPException(status_code=400, detail=str(e))
