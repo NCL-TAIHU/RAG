@@ -39,7 +39,6 @@ export type RouterConfig = {
   
   // -------- Vector Set --------
   export type VectorSetConfig = {
-    root: string;
     dataset: string;
     channel: string;
     chunker: ChunkerConfig;
@@ -79,19 +78,11 @@ export type RouterConfig = {
   
   // -------- App Metadata --------
   export type AppConfig = {
-    id: string;
     name: string;
     dataset: string;
     description?: string;
-  
     search_engines: SearchEngineConfig[];
     router: RouterConfig;
     reranker: RerankerConfig;
-    max_files?: number;
-  
-    weave_url?: string;
-    created_by?: string;
-    created_at?: string;
-    updated_at?: string;
-  };
+};
   

@@ -2,52 +2,58 @@
 
 import { useState } from "react";
 import type {
-  VectorManagerConfig,
-  SimpleChunkerConfig,
+  VectorSetConfig,
+  LengthChunkerConfig,
   SentenceChunkerConfig,
   ChunkerConfig,
-  EmbedderConfig
+  EmbedderConfig,
+  BGEEmbedderConfig
 } from "../../../types/app";
 import { EMBEDDER_MODELS, CHUNKERS } from "../../../lib/config";
 
 type Props = {
   dataset: string;
-  vectorSets: VectorManagerConfig[];
-  onChange: (sets: VectorManagerConfig[]) => void;
+  vectorSets: VectorSetConfig[];
+  onChange: (sets: VectorSetConfig[]) => void;
 };
 
 const AVAILABLE_CHANNELS = ["abstract", "full_text", "metadata"];
 
 export default function VectorSetForm({ dataset, vectorSets, onChange }: Props) {
   const [channel, setChannel] = useState("");
-  const [embedderType, setEmbedderType] = useState<"bge" | "auto_model">("bge");
   const [embedderModel, setEmbedderModel] = useState("");
-  const [chunkerType, setChunkerType] = useState<"simple_chunker" | "sentence_chunker">("simple_chunker");
-
-  const [simpleChunker, setSimpleChunker] = useState<SimpleChunkerConfig>({
-    type: "simple_chunker",
+  const [embedderType, setEmbedderType] = useState<"bge" | "auto_model">("bge");
+  const [chunkerType, setChunkerType] = useState<"length_chunker" | "sentence_chunker">("length_chunker");
+  const [lengthChunker] = useState<LengthChunkerConfig>({
+    type: "length_chunker",
     chunk_size: 512,
     overlap: 50
   });
 
-  const [sentenceChunker, setSentenceChunker] = useState<SentenceChunkerConfig>({
+  const [sentenceChunker] = useState<SentenceChunkerConfig>({
     type: "sentence_chunker",
-    max_length: 512,
-    stride: 50
+    language: "en",
+  });
+
+  const [bgeEmbedder, setBGEEmbedder] = useState<BGEEmbedderConfig>({
+    type: "bge",
+    embedding_type: "sparse",
+    model_name: EMBEDDER_MODELS.bge[0] // Default to first BGE model
+  });
+
+  const [autoModelEmbedder, setAutoModelEmbedder] = useState<EmbedderConfig>({
+    type: "auto_model",
+    embedding_type: "dense",
+    model_name: EMBEDDER_MODELS.auto_model[0] // Default to first auto model
   });
 
   const handleAdd = () => {
     if (!channel || !embedderModel) return;
 
-    const embedder: EmbedderConfig = {
-      type: embedderType,
-      model_name: embedderModel
-    };
+    const embedder: EmbedderConfig = embedderType === "bge" ? bgeEmbedder: autoModelEmbedder;
+    const chunker: ChunkerConfig = chunkerType === "length_chunker" ? lengthChunker : sentenceChunker;
 
-    const chunker: ChunkerConfig =
-      chunkerType === "simple_chunker" ? simpleChunker : sentenceChunker;
-
-    const newSet: VectorManagerConfig = {
+    const newSet: VectorSetConfig = {
       dataset,
       channel,
       embedder,
@@ -80,22 +86,34 @@ export default function VectorSetForm({ dataset, vectorSets, onChange }: Props) 
         <select
           value={embedderType}
           onChange={(e) => {
-            const t = e.target.value as "bge" | "auto_model";
-            setEmbedderType(t);
-            setEmbedderModel(""); // reset model on switch
+            const newType = e.target.value as "bge" | "auto_model";
+            setEmbedderType(newType);
+            setEmbedderModel(""); // Reset model selection when type changes
           }}
         >
-          {Object.keys(EMBEDDER_MODELS).map((type) => (
-            <option key={type} value={type}>
-              {type}
-            </option>
-          ))}
+          <option value="bge">BGE (Sparse)</option>
+          <option value="auto_model">Auto Model (Dense)</option>
         </select>
       </label>
 
+
       <label>
         <div>Embedder Model</div>
-        <select value={embedderModel} onChange={(e) => setEmbedderModel(e.target.value)}>
+        <select value={embedderModel} onChange={(e) => {
+          setEmbedderModel(e.target.value);
+          // Update the appropriate embedder config with the selected model
+          if (embedderType === "bge") {
+            setBGEEmbedder({
+              ...bgeEmbedder,
+              model_name: e.target.value
+            });
+          } else {
+            setAutoModelEmbedder({
+              ...autoModelEmbedder,
+              model_name: e.target.value
+            });
+          }
+        }}>
           <option value="">Select model</option>
           {EMBEDDER_MODELS[embedderType].map((model) => (
             <option key={model} value={model}>
@@ -110,7 +128,7 @@ export default function VectorSetForm({ dataset, vectorSets, onChange }: Props) 
         <select
           value={chunkerType}
           onChange={(e) => {
-            const newType = e.target.value as "simple_chunker" | "sentence_chunker";
+            const newType = e.target.value as "length_chunker" | "sentence_chunker";
             setChunkerType(newType);
           }}
         >
@@ -121,56 +139,6 @@ export default function VectorSetForm({ dataset, vectorSets, onChange }: Props) 
           ))}
         </select>
       </label>
-
-      {chunkerType === "simple_chunker" && (
-        <>
-          <label>
-            Chunk Size
-            <input
-              type="number"
-              value={simpleChunker.chunk_size}
-              onChange={(e) =>
-                setSimpleChunker({ ...simpleChunker, chunk_size: parseInt(e.target.value) })
-              }
-            />
-          </label>
-          <label>
-            Overlap
-            <input
-              type="number"
-              value={simpleChunker.overlap}
-              onChange={(e) =>
-                setSimpleChunker({ ...simpleChunker, overlap: parseInt(e.target.value) })
-              }
-            />
-          </label>
-        </>
-      )}
-
-      {chunkerType === "sentence_chunker" && (
-        <>
-          <label>
-            Max Length
-            <input
-              type="number"
-              value={sentenceChunker.max_length}
-              onChange={(e) =>
-                setSentenceChunker({ ...sentenceChunker, max_length: parseInt(e.target.value) })
-              }
-            />
-          </label>
-          <label>
-            Stride
-            <input
-              type="number"
-              value={sentenceChunker.stride}
-              onChange={(e) =>
-                setSentenceChunker({ ...sentenceChunker, stride: parseInt(e.target.value) })
-              }
-            />
-          </label>
-        </>
-      )}
 
       <button onClick={handleAdd} disabled={!channel || !embedderModel}>
         Add Vector Set

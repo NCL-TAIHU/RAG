@@ -16,13 +16,7 @@ import type {
   AppConfig,
 } from "../../types/app";
 
-function generateId(): string {
-  return Math.random().toString(36).slice(2, 10);
-}
-
-
 export default function RecipeForm() {
-  const [appId] = useState<string>(() => generateId());
   const [step, setStep] = useState(0);
   const [appName, setAppName] = useState<string>("");
   const [dataset, setDataset] = useState<string>("");
@@ -42,7 +36,6 @@ export default function RecipeForm() {
   };
 
   const AppConfig: AppConfig = {
-    id: appId,
     name: appName,
     dataset,
     search_engines: searchEngines,

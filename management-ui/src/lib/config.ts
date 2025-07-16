@@ -3,24 +3,23 @@
 export const AVAILABLE_DATASETS = [
     "ncl",
     "litsearch"
-  ];
+];
   
 export const EMBEDDER_MODELS = {
 bge: ["BAAI/bge-m3"],
 auto_model: [
-    "sentence-transformers/all-MiniLM-L6-v2",
-    "intfloat/e5-small-v2"
+    "sentence-transformers/all-MiniLM-L6-v2"
 ]
 };
 
 export const CHUNKERS = [
 {
-    type: "simple_chunker",
+    type: "length_chunker",
     default: { chunk_size: 512, overlap: 50 }
 },
 {
     type: "sentence_chunker",
-    default: { max_length: 512, stride: 50 }
+    default: {language: "en"}
 }
 ];
 
