@@ -103,6 +103,7 @@
 <li class="toctree-l3"><a class="reference internal" href="src.core.html#src.core.collection.CollectionBuilder"><code class="docutils literal notranslate"><span class="pre">CollectionBuilder</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.collection.CollectionBuilder.build"><code class="docutils literal notranslate"><span class="pre">CollectionBuilder.build()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.collection.CollectionBuilder.collection_name"><code class="docutils literal notranslate"><span class="pre">CollectionBuilder.collection_name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.collection.CollectionBuilder.config_path"><code class="docutils literal notranslate"><span class="pre">CollectionBuilder.config_path</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.collection.CollectionBuilder.connect"><code class="docutils literal notranslate"><span class="pre">CollectionBuilder.connect()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.collection.CollectionBuilder.consistency_level"><code class="docutils literal notranslate"><span class="pre">CollectionBuilder.consistency_level</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.collection.CollectionBuilder.fields"><code class="docutils literal notranslate"><span class="pre">CollectionBuilder.fields</span></code></a></li>
@@ -126,9 +127,8 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="src.core.html#src.core.collection.CollectionOperator"><code class="docutils literal notranslate"><span class="pre">CollectionOperator</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.collection.CollectionOperator.buffered_insert"><code class="docutils literal notranslate"><span class="pre">CollectionOperator.buffered_insert()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.collection.CollectionOperator.search_dense"><code class="docutils literal notranslate"><span class="pre">CollectionOperator.search_dense()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.collection.CollectionOperator.search"><code class="docutils literal notranslate"><span class="pre">CollectionOperator.search()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.collection.CollectionOperator.search_hybrid"><code class="docutils literal notranslate"><span class="pre">CollectionOperator.search_hybrid()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.collection.CollectionOperator.search_sparse"><code class="docutils literal notranslate"><span class="pre">CollectionOperator.search_sparse()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="src.core.html#src.core.collection.FieldConfig"><code class="docutils literal notranslate"><span class="pre">FieldConfig</span></code></a><ul>
@@ -273,31 +273,7 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="src.core.html#module-src.core.embedder">src.core.embedder module</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="src.core.html#src.core.embedder.AutoModelEmbedder"><code class="docutils literal notranslate"><span class="pre">AutoModelEmbedder</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.embedder.AutoModelEmbedder.embed"><code class="docutils literal notranslate"><span class="pre">AutoModelEmbedder.embed()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.embedder.AutoModelEmbedder.get_dim"><code class="docutils literal notranslate"><span class="pre">AutoModelEmbedder.get_dim()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="src.core.html#src.core.embedder.BGEM3Embedder"><code class="docutils literal notranslate"><span class="pre">BGEM3Embedder</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.embedder.BGEM3Embedder.embed"><code class="docutils literal notranslate"><span class="pre">BGEM3Embedder.embed()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="src.core.html#src.core.embedder.DenseEmbedder"><code class="docutils literal notranslate"><span class="pre">DenseEmbedder</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.embedder.DenseEmbedder.embed"><code class="docutils literal notranslate"><span class="pre">DenseEmbedder.embed()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.embedder.DenseEmbedder.get_dim"><code class="docutils literal notranslate"><span class="pre">DenseEmbedder.get_dim()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="src.core.html#src.core.embedder.MilvusBGEM3Embedder"><code class="docutils literal notranslate"><span class="pre">MilvusBGEM3Embedder</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.embedder.MilvusBGEM3Embedder.embed"><code class="docutils literal notranslate"><span class="pre">MilvusBGEM3Embedder.embed()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="src.core.html#src.core.embedder.SparseEmbedder"><code class="docutils literal notranslate"><span class="pre">SparseEmbedder</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.embedder.SparseEmbedder.embed"><code class="docutils literal notranslate"><span class="pre">SparseEmbedder.embed()</span></code></a></li>
-</ul>
-</li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="src.core.html#src-core-embedder-module">src.core.embedder module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="src.core.html#module-src.core.filter">src.core.filter module</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="src.core.html#src.core.filter.Filter"><code class="docutils literal notranslate"><span class="pre">Filter</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.filter.Filter.EMPTY"><code class="docutils literal notranslate"><span class="pre">Filter.EMPTY</span></code></a></li>
@@ -383,15 +359,7 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="src.core.html#module-src.core.manager">src.core.manager module</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="src.core.html#src.core.manager.Manager"><code class="docutils literal notranslate"><span class="pre">Manager</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.manager.Manager.fetch"><code class="docutils literal notranslate"><span class="pre">Manager.fetch()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.manager.Manager.insert"><code class="docutils literal notranslate"><span class="pre">Manager.insert()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.manager.Manager.setup"><code class="docutils literal notranslate"><span class="pre">Manager.setup()</span></code></a></li>
-</ul>
-</li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="src.core.html#src-core-manager-module">src.core.manager module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="src.core.html#module-src.core.prompt">src.core.prompt module</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="src.core.html#src.core.prompt.PromptBuilder"><code class="docutils literal notranslate"><span class="pre">PromptBuilder</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.prompt.PromptBuilder.add_assistant_message"><code class="docutils literal notranslate"><span class="pre">PromptBuilder.add_assistant_message()</span></code></a></li>
@@ -404,67 +372,12 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="src.core.html#module-src.core.router">src.core.router module</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="src.core.html#src.core.router.Router"><code class="docutils literal notranslate"><span class="pre">Router</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.router.Router.from_default"><code class="docutils literal notranslate"><span class="pre">Router.from_default()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.router.Router.route"><code class="docutils literal notranslate"><span class="pre">Router.route()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="src.core.html#src.core.router.SimpleRouter"><code class="docutils literal notranslate"><span class="pre">SimpleRouter</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.router.SimpleRouter.route"><code class="docutils literal notranslate"><span class="pre">SimpleRouter.route()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="src.core.html#src.core.router.SparsityRouter"><code class="docutils literal notranslate"><span class="pre">SparsityRouter</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.router.SparsityRouter.route"><code class="docutils literal notranslate"><span class="pre">SparsityRouter.route()</span></code></a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="src.core.html#module-src.core.search_engine">src.core.search_engine module</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="src.core.html#src.core.search_engine.ElasticSearchEngine"><code class="docutils literal notranslate"><span class="pre">ElasticSearchEngine</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.search_engine.ElasticSearchEngine.document_cls"><code class="docutils literal notranslate"><span class="pre">ElasticSearchEngine.document_cls</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.search_engine.ElasticSearchEngine.filter_cls"><code class="docutils literal notranslate"><span class="pre">ElasticSearchEngine.filter_cls</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.search_engine.ElasticSearchEngine.insert"><code class="docutils literal notranslate"><span class="pre">ElasticSearchEngine.insert()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.search_engine.ElasticSearchEngine.search"><code class="docutils literal notranslate"><span class="pre">ElasticSearchEngine.search()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.search_engine.ElasticSearchEngine.setup"><code class="docutils literal notranslate"><span class="pre">ElasticSearchEngine.setup()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.search_engine.ElasticSearchEngine.spec"><code class="docutils literal notranslate"><span class="pre">ElasticSearchEngine.spec()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="src.core.html#src.core.search_engine.HybridSearchEngine"><code class="docutils literal notranslate"><span class="pre">HybridSearchEngine</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.search_engine.HybridSearchEngine.insert"><code class="docutils literal notranslate"><span class="pre">HybridSearchEngine.insert()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.search_engine.HybridSearchEngine.search"><code class="docutils literal notranslate"><span class="pre">HybridSearchEngine.search()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.search_engine.HybridSearchEngine.setup"><code class="docutils literal notranslate"><span class="pre">HybridSearchEngine.setup()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.search_engine.HybridSearchEngine.spec"><code class="docutils literal notranslate"><span class="pre">HybridSearchEngine.spec()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="src.core.html#src.core.search_engine.MilvusSearchEngine"><code class="docutils literal notranslate"><span class="pre">MilvusSearchEngine</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.search_engine.MilvusSearchEngine.document_cls"><code class="docutils literal notranslate"><span class="pre">MilvusSearchEngine.document_cls</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.search_engine.MilvusSearchEngine.embed_query"><code class="docutils literal notranslate"><span class="pre">MilvusSearchEngine.embed_query()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.search_engine.MilvusSearchEngine.filter_cls"><code class="docutils literal notranslate"><span class="pre">MilvusSearchEngine.filter_cls</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.search_engine.MilvusSearchEngine.insert"><code class="docutils literal notranslate"><span class="pre">MilvusSearchEngine.insert()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.search_engine.MilvusSearchEngine.search"><code class="docutils literal notranslate"><span class="pre">MilvusSearchEngine.search()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.search_engine.MilvusSearchEngine.setup"><code class="docutils literal notranslate"><span class="pre">MilvusSearchEngine.setup()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.search_engine.MilvusSearchEngine.spec"><code class="docutils literal notranslate"><span class="pre">MilvusSearchEngine.spec()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="src.core.html#src.core.search_engine.SearchEngine"><code class="docutils literal notranslate"><span class="pre">SearchEngine</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.search_engine.SearchEngine.insert"><code class="docutils literal notranslate"><span class="pre">SearchEngine.insert()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.search_engine.SearchEngine.search"><code class="docutils literal notranslate"><span class="pre">SearchEngine.search()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.search_engine.SearchEngine.setup"><code class="docutils literal notranslate"><span class="pre">SearchEngine.setup()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.search_engine.SearchEngine.spec"><code class="docutils literal notranslate"><span class="pre">SearchEngine.spec()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="src.core.html#src.core.search_engine.SearchSpec"><code class="docutils literal notranslate"><span class="pre">SearchSpec</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.search_engine.SearchSpec.model_config"><code class="docutils literal notranslate"><span class="pre">SearchSpec.model_config</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.search_engine.SearchSpec.name"><code class="docutils literal notranslate"><span class="pre">SearchSpec.name</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="src.core.html#src.core.search_engine.SearchSpec.optimal_for"><code class="docutils literal notranslate"><span class="pre">SearchSpec.optimal_for</span></code></a></li>
-</ul>
-</li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="src.core.html#src-core-router-module">src.core.router module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="src.core.html#src-core-search-engine-module">src.core.search_engine module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="src.core.html#module-src.core.util">src.core.util module</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="src.core.html#src.core.util.coalesce"><code class="docutils literal notranslate"><span class="pre">coalesce()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="src.core.html#src.core.util.get"><code class="docutils literal notranslate"><span class="pre">get()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="src.core.html#src.core.util.get_first_content"><code class="docutils literal notranslate"><span class="pre">get_first_content()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="src.core.html#module-src.core">Module contents</a></li>

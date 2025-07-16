@@ -86,11 +86,11 @@
     <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">years</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
     <span class="n">categories</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-    <span class="n">schools</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-    <span class="n">depts</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="c1"># schools: List[str],</span>
+    <span class="c1"># depts: List[str],</span>
     <span class="n">keywords</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-    <span class="n">authors</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-    <span class="n">advisors</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="c1"># authors: List[str],</span>
+    <span class="c1"># advisors: List[str]</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    執行文檔搜尋並返回結果</span>
@@ -103,11 +103,11 @@
         <span class="s2">&quot;filter&quot;</span><span class="p">:</span> <span class="p">{</span>
             <span class="s2">&quot;years&quot;</span><span class="p">:</span> <span class="n">years</span> <span class="k">if</span> <span class="n">years</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
             <span class="s2">&quot;categories&quot;</span><span class="p">:</span> <span class="n">categories</span> <span class="k">if</span> <span class="n">categories</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
-            <span class="s2">&quot;schools&quot;</span><span class="p">:</span> <span class="n">schools</span> <span class="k">if</span> <span class="n">schools</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
-            <span class="s2">&quot;depts&quot;</span><span class="p">:</span> <span class="n">depts</span> <span class="k">if</span> <span class="n">depts</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="c1"># &quot;schools&quot;: schools if schools else None,</span>
+            <span class="c1"># &quot;depts&quot;: depts if depts else None,</span>
             <span class="s2">&quot;keywords&quot;</span><span class="p">:</span> <span class="n">keywords</span> <span class="k">if</span> <span class="n">keywords</span> <span class="k">else</span> <span class="p">[],</span>
-            <span class="s2">&quot;authors&quot;</span><span class="p">:</span> <span class="n">authors</span> <span class="k">if</span> <span class="n">authors</span> <span class="k">else</span> <span class="p">[],</span>
-            <span class="s2">&quot;advisors&quot;</span><span class="p">:</span> <span class="n">advisors</span> <span class="k">if</span> <span class="n">advisors</span> <span class="k">else</span> <span class="p">[]</span>
+            <span class="c1"># &quot;authors&quot;: authors if authors else [],</span>
+            <span class="c1"># &quot;advisors&quot;: advisors if advisors else []</span>
         <span class="p">}</span>
     <span class="p">}</span>
     
