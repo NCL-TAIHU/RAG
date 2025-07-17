@@ -1,13 +1,31 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import ValidationError
-from src.run.app_state import AppState
 from src.core.schema import AppConfig
 from contextlib import asynccontextmanager
 from adaptor import assemble_app_config 
 from typing import Dict, Any, List
+from src.run.state import BaseState
+from src.core.vector_set import BaseVectorSet
+from src.core.schema import VectorSetConfig, AppConfig
+from src.core.app import SearchApp
+import yaml
+import os
 app = FastAPI()
-app_state = AppState()
+app_config = yaml.safe_load(open("config/app.yml", "r", encoding="utf-8"))
+vector_set_config = yaml.safe_load(open("config/vector_set.yml", "r", encoding="utf-8"))
+
+
+app_state = BaseState[AppConfig, SearchApp](
+    config_cls=AppConfig,
+    obj_cls=SearchApp,
+    config_dir=app_config["config_path"]
+)
+vector_set_state = BaseState[VectorSetConfig, BaseVectorSet](
+    config_cls=VectorSetConfig,
+    obj_cls=BaseVectorSet,
+    config_dir=vector_set_config["config_path"]
+) 
 
 app.add_middleware(
     CORSMiddleware,
@@ -20,7 +38,8 @@ app.add_middleware(
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup logic
-    app_state.load_all_metadata()
+    app_state.load_all_configs()
+    vector_set_state.load_all_configs()
     yield
     # Shutdown logic (if needed)
 

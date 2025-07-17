@@ -15,6 +15,7 @@ from typing import List
 import sys
 from src.core.manager import Manager
 from src.core.reranker import IdentityReranker
+from src.core.interface import StoredObj
 from tqdm import tqdm
 CHATBOT = "meta-llama/Llama-3.1-8B-Instruct"
 DENSE_EMBEDDER = "sentence-transformers/all-MiniLM-L6-v2"
@@ -31,7 +32,7 @@ logger = setup_logger(
     level = "DEBUG"  # Set to DEBUG for detailed logs
 )
 
-class SearchApp:
+class SearchApp(StoredObj):
     '''
     A search application that uses a combination of dense and sparse embeddings to retrieve relevant documents.
     The static methods are contextually static, meaning that their functionality does not depend on the instance state, 

@@ -1,4 +1,5 @@
 from typing import List, Optional, Union, Literal
+from src.core.interface import StoredConfig
 from pydantic import BaseModel, Field
 
 # ---------------- Router and Reranker ----------------
@@ -36,7 +37,7 @@ class SentenceChunkerConfig(BaseModel):
 ChunkerConfig = Union[LengthChunkerConfig, SentenceChunkerConfig]
 
 # ---------------- VectorSet ----------------
-class VectorSetConfig(BaseModel):
+class VectorSetConfig(StoredConfig):
     root: str
     dataset: str
     channel: str
@@ -47,7 +48,7 @@ class VectorSetConfig(BaseModel):
 
 class MilvusConfig(BaseModel):
     type: Literal["milvus"]
-    vector_set: VectorSetConfig    
+    vector_set: VectorSetConfig
 
 class HybridMilvusConfig(BaseModel):
     type: Literal["hybrid_milvus"]
@@ -75,12 +76,11 @@ SearchEngineConfig = Union[
 
 # ---------------- App Config ----------------
 
-class AppConfig(BaseModel):
+class AppConfig(StoredConfig):
     '''
     A image of an existing app that is ready to be activated. 
     Front-end form data has to be enriched by backend with weave urls, ids, timestamps, and vector store roots to reach this stage. 
     '''
-    id: str 
     name: str
     dataset: str
     description: Optional[str] = None

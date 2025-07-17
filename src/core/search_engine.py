@@ -4,7 +4,7 @@ from src.core.filter import Filter
 from src.core.embedder import BaseEmbedder, SparseEmbedder, DenseEmbedder
 from src.core.collection import FieldConfig, IndexConfig, CollectionConfig, CollectionOperator, CollectionBuilder
 from src.core.elastic import ElasticIndexBuilder, ElasticIndexConfig
-from src.core.vector_set import BaseVS
+from src.core.vector_set import BaseVectorSet
 from src.core.schema import SearchEngineConfig, MilvusConfig, HybridMilvusConfig, ElasticSearchConfig, SequentialConfig
 from src.core.util import get 
 from typing import List
@@ -17,7 +17,6 @@ from elasticsearch import Elasticsearch
 from pydantic import BaseModel
 import yaml
 import logging
-from src.core.vector_manager import VectorManager
 from scipy.sparse import csr_array, vstack
 from src.core.util import coalesce
 
@@ -128,35 +127,42 @@ class HybridMilvusSearchEngine(SearchEngine):
 
     def __init__(
         self,
-        dense_vm: VectorManager, 
-        sparse_vm: VectorManager, 
+        dense_vector_set: BaseVectorSet, 
+        sparse_vector_set: BaseVectorSet, 
         alpha = 0.5, 
         force_rebuild: bool = False,
     ):
-        dataset = dense_vm.get_vs_config().dataset
+        dataset = dense_vector_set.config() 
         self.document_cls = Document.from_dataset(dataset)
         self.filter_cls = Filter.from_dataset(dataset)
-        self.dense_vm = dense_vm
-        self.sparse_vm = sparse_vm
+        self.dense_vector_set = dense_vector_set
+        self.sparse_vector_set = sparse_vector_set
         self.alpha = alpha
         self.force_rebuild = force_rebuild
+        assert self.dense_vector_set.config().embedder.embedding_type == "dense", \
+            "Dense vector set must use a dense embedder"
+        assert self.sparse_vector_set.config().embedder.embedding_type == "sparse", \
+            "Sparse vector set must use a sparse embedder"
+        
+        self.dense_embedder: DenseEmbedder = BaseEmbedder.from_config(self.dense_vector_set.config().embedder)
+        self.sparse_embedder: SparseEmbedder = BaseEmbedder.from_config(self.sparse_vector_set.config().embedder)
 
-        assert self.dense_vm.get_vs_config().dataset == self.sparse_vm.get_vs_config().dataset, \
+        assert self.dense_vector_set.config().dataset == self.sparse_vector_set.config().dataset, \
             "Dense and sparse vector managers must have the same dataset"
 
-        assert self.dense_vm.get_vs_config().channel == self.sparse_vm.get_vs_config().channel, \
+        assert self.dense_vector_set.config().channel == self.sparse_vector_set.config().channel, \
             "Dense and sparse vector managers must have the same channel"
         
-        assert self.dense_vm.get_vs_config().chunker == self.sparse_vm.get_vs_config().chunker, \
+        assert self.dense_vector_set.config().chunker == self.sparse_vector_set.config().chunker, \
             "Dense and sparse vector managers must have the same chunker metadata"
 
         fields = [
             FieldConfig(name="pk", dtype=DataType.VARCHAR, is_primary=True, max_length=100)
         ]
 
-        vs_config = dense_vm.get_vs_config()
+        vs_config = dense_vector_set.config()
         dense_model = vs_config.embedder.model_name
-        sparse_model = sparse_vm.get_vs_config().embedder.model_name
+        sparse_model = sparse_vector_set.config().embedder.model_name
         dataset = vs_config.dataset
         channel = vs_config.channel
 
@@ -176,7 +182,7 @@ class HybridMilvusSearchEngine(SearchEngine):
 
         fields += [
             FieldConfig(name="sparse_vector", dtype=DataType.SPARSE_FLOAT_VECTOR),
-            FieldConfig(name="dense_vector", dtype=DataType.FLOAT_VECTOR, dim=self.dense_vm.embedder.get_dim())
+            FieldConfig(name="dense_vector", dtype=DataType.FLOAT_VECTOR, dim=self.dense_vector_set.embedder.get_dim())
         ]
 
         self.config = CollectionConfig(
@@ -213,19 +219,12 @@ class HybridMilvusSearchEngine(SearchEngine):
         assert config.dense_vector_set.chunker == config.sparse_vector_set.chunker, \
             "Dense and sparse vector sets must have the same chunker configuration"
         
-        dense_vs = coalesce(lambda: BaseVS.from_existing(config.dense_vector_set), 
-                            lambda: BaseVS.from_config(config.dense_vector_set))
-        
-        sparse_vs = coalesce(lambda: BaseVS.from_existing(config.sparse_vector_set),    
-                            lambda: BaseVS.from_config(config.sparse_vector_set))
-        
-        dense_vm = VectorManager(dense_vs)
-        sparse_vm = VectorManager(sparse_vs)
-
+        dense_vs = BaseVectorSet.from_config(config.dense_vector_set)
+        sparse_vs = BaseVectorSet.from_config(config.sparse_vector_set)
         
         return cls(
-            dense_vm=dense_vm,
-            sparse_vm=sparse_vm,
+            dense_vector_set=dense_vs,
+            sparse_vector_set=sparse_vs,
             alpha=config.alpha,
         )
         
@@ -241,8 +240,8 @@ class HybridMilvusSearchEngine(SearchEngine):
         self.operator = CollectionOperator(self.collection)
 
     def embed_query(self, query: str):
-        dense = self.dense_vm.get_raw_embedding([query])[0]
-        sparse = self.sparse_vm.get_raw_embedding([query])
+        dense = self.dense_embedder.embed([query])[0]
+        sparse = self.sparse_embedder.embed([query])
         assert sparse.shape[0] == 1, "Expected a single-row sparse vector"
         return dense, sparse._getrow(0)
 
@@ -258,9 +257,13 @@ class HybridMilvusSearchEngine(SearchEngine):
         new_docs = [doc for doc in documents if doc.key() not in existing_pks]
         if not new_docs:
             return
+        
+        self.dense_vector_set.upsert([doc for doc in new_docs if not self.dense_vector_set.has(doc.key())])
+        self.sparse_vector_set.upsert([doc for doc in new_docs if not self.sparse_vector_set.has(doc.key())])
 
-        dense_embeddings = self.dense_vm.get_doc_embeddings(new_docs)  # Dict[str, List[List[float]]]
-        sparse_embeddings = self.sparse_vm.get_doc_embeddings(new_docs)  # Dict[str, csr_array]
+        ids = [doc.key() for doc in new_docs]
+        dense_embeddings = self.dense_vector_set.retrieve(ids)  # Dict[str, List[List[float]]]
+        sparse_embeddings = self.sparse_vector_set.retrieve(ids)  # Dict[str, csr_array]
 
         insert_dict = {
             "pk": [],
@@ -338,17 +341,17 @@ class MilvusSearchEngine(SearchEngine):
 
     def __init__(
         self,
-        vector_manager: VectorManager,
+        vector_set: BaseVectorSet,
         force_rebuild: bool = False,
     ):
-        self.vm = vector_manager
-        self.dataset = vector_manager.get_vs_config().dataset
-        self.vector_type = self.vm.get_vs_config().embedder.embedding_type
+        self.vector_set = vector_set
+        self.dataset = vector_set.config().dataset
+        self.vector_type = self.vector_set.config().embedder.embedding_type
         self.document_cls = Document.from_dataset(self.dataset)
         self.filter_cls = Filter.from_dataset(self.dataset)
         self.force_rebuild = force_rebuild
-
-        vs_config = vector_manager.get_vs_config()
+        self.embedder: BaseEmbedder = BaseEmbedder.from_config(self.vector_set.config().embedder)
+        vs_config = vector_set.config()
         model = vs_config.embedder.model_name 
         dataset = vs_config.dataset
         channel = vs_config.channel
@@ -375,7 +378,7 @@ class MilvusSearchEngine(SearchEngine):
                 )
             ]
         elif self.vector_type == "dense":
-            fields.append(FieldConfig(name="dense_vector", dtype=DataType.FLOAT_VECTOR, dim=self.vm.embedder.get_dim()))
+            fields.append(FieldConfig(name="dense_vector", dtype=DataType.FLOAT_VECTOR, dim=self.vector_set.embedder.get_dim()))
             indexes = [
                 IndexConfig(
                     field_name="dense_vector",
@@ -402,14 +405,7 @@ class MilvusSearchEngine(SearchEngine):
         :param config: Configuration object containing Milvus search engine parameters.
         :return: An instance of MilvusSearchEngine.
         """
-        vs = coalesce(lambda: BaseVS.from_existing(config.vector_set), 
-                      lambda: BaseVS.from_config(config.vector_set))
-        
-        vm = VectorManager(vs)
-        
-        return cls(
-            vector_manager=vm
-        )
+        return cls(vector_set = BaseVectorSet.from_config(config.vector_set)) 
     
     def setup(self):
         logger.info(f"Setting up Milvus collection: {self.config.collection_name}, force_rebuild={self.force_rebuild}")
@@ -422,7 +418,7 @@ class MilvusSearchEngine(SearchEngine):
         self.operator = CollectionOperator(self.collection)
 
     def embed_query(self, query: str):
-        embedding = self.vm.get_raw_embedding([query])
+        embedding = self.embedder.embed([query])
         if self.vector_type == "dense":
             assert isinstance(embedding, List) and len(embedding) == 1, "Dense embedder must return a single vector"
             return embedding[0]
@@ -444,7 +440,8 @@ class MilvusSearchEngine(SearchEngine):
         if not new_docs:
             return
 
-        embeddings = self.vm.get_doc_embeddings(new_docs)
+        self.vector_set.upsert([doc for doc in new_docs if not self.vector_set.has(doc.key())])
+        embeddings = self.vector_set.retrieve([doc.key() for doc in new_docs])
         insert_dict = {
             "pk": [],
             self.vector_type + "_vector": [],

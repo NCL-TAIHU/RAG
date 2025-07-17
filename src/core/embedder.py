@@ -32,6 +32,17 @@ class BaseEmbedder:
     def name(self) -> str: 
         raise NotImplementedError("This method should be overridden by subclasses.")
     
+    def embed_chunks(self, ids: List[str], chunks_lst: List[List[str]]) -> Dict[str, Union[List[List[float]], csr_array]]:
+        flat_chunks = [chunk for chunks in chunks_lst for chunk in chunks]
+        embedded = self.embed(flat_chunks)
+        pointer = 0
+        embeddings = {}
+        for doc_id, chunks in zip(ids, chunks_lst):
+            n = len(chunks)
+            embeddings[doc_id] = embedded[pointer: pointer + n]
+            pointer += n
+        return embeddings
+    
     @classmethod
     def from_config(cls, config: EmbedderConfig) -> 'BaseEmbedder': 
         if config.type == "auto_model": 
