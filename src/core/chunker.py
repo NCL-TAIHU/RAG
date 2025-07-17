@@ -49,14 +49,17 @@ class LengthChunker(BaseChunker):
     Simple chunker that splits documents into chunks of a specified length.
     """
 
-    def __init__(self, chunk_length: int = 512):
+    def __init__(self, chunk_length: int = 512, overlap: int = 50):
         self.chunk_length = chunk_length
+        self.overlap = overlap
+        assert chunk_length > overlap, "Chunk length must be greater than overlap"
 
     def chunk(self, docs: List[str]) -> List[List[str]]:
         """
         Splits each document into chunks of the specified length.
         """
-        return [[doc[i:i + self.chunk_length] for i in range(0, len(doc), self.chunk_length)] for doc in docs]
+        #return [[doc[i:i + self.chunk_length] for i in range(0, len(doc), self.chunk_length)] for doc in docs]
+        return [[doc[i:i + self.chunk_length] for i in range(0, len(doc), self.chunk_length - self.overlap)] for doc in docs]
     
     @classmethod
     def from_config(cls, config: LengthChunkerConfig) -> 'LengthChunker':
@@ -65,7 +68,13 @@ class LengthChunker(BaseChunker):
         :param config: Configuration object containing chunker parameters.
         :return: An instance of LengthChunker.
         """
-        return cls(chunk_length=config.chunk_size)
+        return cls(chunk_length=config.chunk_size, overlap=config.overlap)
+
+    def config(self) -> LengthChunkerConfig:
+        """
+        Returns metadata about the chunking operation, such as the type of chunker used and any parameters.
+        """
+        return LengthChunkerConfig(type="length_chunker", chunk_size=self.chunk_length, overlap=0)
     
 class SentenceChunker(BaseChunker):
     """
@@ -95,3 +104,9 @@ class SentenceChunker(BaseChunker):
         :return: An instance of SentenceChunker.
         """
         return cls(language=config.language)
+    
+    def config(self) -> SentenceChunkerConfig:
+        """
+        Returns metadata about the chunking operation, such as the type of chunker used and any parameters.
+        """
+        return SentenceChunkerConfig(type="sentence_chunker", language=self.language)

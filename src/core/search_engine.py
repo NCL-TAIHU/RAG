@@ -20,8 +20,8 @@ import logging
 from scipy.sparse import csr_array, vstack
 from src.core.util import coalesce
 
-logger = logging.getLogger('taihu')
-
+logger = logging.getLogger(__name__)
+model_config = yaml.safe_load(open("config/model.yml", "r"))
 class SearchSpec(BaseModel):
     '''
     Description of the strengths and weaknesses of a search engine, used by router to determine which search engine to use.
@@ -168,7 +168,10 @@ class HybridMilvusSearchEngine(SearchEngine):
 
         #collection name has to be different enough so that collections don't collide. But even if collections of different 
         #config but same name do collide, the collection builder would handle it can build a new one. 
-        self.collection_name = f"{dense_model}_{sparse_model}_{dataset}_{channel}_hybrid_collection" 
+        self.collection_name = (f"dense={model_config[dense_model]['alias']}_\
+                                sparse={model_config[sparse_model]['alias']}_\
+                                dataset={dataset}_\
+                                channel={channel}")
 
 
         metadata_schema = self.document_cls.metadata_schema()
@@ -236,7 +239,8 @@ class HybridMilvusSearchEngine(SearchEngine):
         self.collection = (builder.build() 
                            if self.force_rebuild 
                            else coalesce(builder.get_existing, builder.build))
-
+        self.dense_vector_set.setup()
+        self.sparse_vector_set.setup()
         self.operator = CollectionOperator(self.collection)
 
     def embed_query(self, query: str):
@@ -355,7 +359,7 @@ class MilvusSearchEngine(SearchEngine):
         model = vs_config.embedder.model_name 
         dataset = vs_config.dataset
         channel = vs_config.channel
-        self.collection_name = f"{model}_{dataset}_{channel}_collection"
+        self.collection_name = (f"{model_config[model]['alias']}_{dataset}_{channel}_collection")
 
         fields = [
             FieldConfig(name="pk", dtype=DataType.VARCHAR, is_primary=True, max_length=100)
@@ -414,7 +418,7 @@ class MilvusSearchEngine(SearchEngine):
         self.collection = (builder.build() 
                            if self.force_rebuild 
                            else coalesce(builder.get_existing, builder.build))
-
+        self.vector_set.setup()
         self.operator = CollectionOperator(self.collection)
 
     def embed_query(self, query: str):

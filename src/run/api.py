@@ -8,7 +8,7 @@ from typing import Dict, Any, List
 from src.run.state import BaseState
 from src.core.vector_set import BaseVectorSet
 from src.core.schema import VectorSetConfig, AppConfig
-from src.core.app import SearchApp
+from src.core.app import App
 import yaml
 import os
 app = FastAPI()
@@ -16,9 +16,9 @@ app_config = yaml.safe_load(open("config/app.yml", "r", encoding="utf-8"))
 vector_set_config = yaml.safe_load(open("config/vector_set.yml", "r", encoding="utf-8"))
 
 
-app_state = BaseState[AppConfig, SearchApp](
+app_state = BaseState[AppConfig, App](
     config_cls=AppConfig,
-    obj_cls=SearchApp,
+    obj_cls=App,
     config_dir=app_config["config_path"]
 )
 vector_set_state = BaseState[VectorSetConfig, BaseVectorSet](

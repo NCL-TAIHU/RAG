@@ -18,7 +18,7 @@ import os
 import json
 import logging
 
-logger = logging.getLogger('taihu')
+logger = logging.getLogger(__name__)
 
 class FieldConfig(BaseModel): 
     name: str

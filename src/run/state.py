@@ -39,8 +39,8 @@ class BaseState(Generic[T, S]):
 
     def register(self, config: T):
         self._configs[config.id] = config
-
         path = os.path.join(self._config_dir, f"{config.id}.yml")
+        os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w", encoding="utf-8") as f:
             yaml.dump(config.model_dump(), f, sort_keys=False)
 

@@ -9,10 +9,11 @@ from src.core.chunker import BaseChunker
 from src.core.embedder import BaseEmbedder
 from src.core.document import Document
 from src.core.data import DataLoader
+from tqdm import tqdm
 import logging
-logger = logging.getLogger("taihu")
+logger = logging.getLogger(__name__)
 
-class BaseVectorSet(ABC, StoredObj):
+class BaseVectorSet(StoredObj):
     def __init__(self, config: VectorSetConfig):
         self._config = config
         self.root = config.root
@@ -31,9 +32,15 @@ class BaseVectorSet(ABC, StoredObj):
         self._upsert(ids, embeddings)
 
     def setup(self):
+        logger.info(f"Setting up vector set at {self.root}")
         dataloader = DataLoader.from_default(self._config.dataset)
         need_insert = [doc for doc in dataloader.stream() if not self.has(doc.key())]
-        if need_insert: self.upsert(need_insert)
+        BATCH_SIZE = 64
+        logger.info(f"Need to insert {len(need_insert)} documents into vector set")
+        for i in tqdm(range(0, len(need_insert), BATCH_SIZE), desc="Inserting documents"):
+            batch = need_insert[i:i + BATCH_SIZE]
+            self.upsert(batch)
+        self.save()
 
     def save(self):
         os.makedirs(self.root, exist_ok=True)
@@ -52,16 +59,23 @@ class BaseVectorSet(ABC, StoredObj):
             if existing_id != config.id:
                 raise ValueError(f"ID mismatch: expected {config.id}, found {existing_id} in {id_path}")
 
-            obj = cls(config)
+            if config.embedder.embedding_type == "dense":
+                obj = FileBackedDenseVS(config)
+            else: 
+                obj = FileBackedSparseVS(config)
             obj._load_vectors()
             return obj
         except Exception:
             logger.exception(f"Failed to load {cls.__name__} from {config.root}, creating new vector set.")
             os.makedirs(config.root, exist_ok=True)
-            return cls(config)
+            if config.embedder.embedding_type == "dense":
+                obj = FileBackedDenseVS(config)
+            else: 
+                obj = FileBackedSparseVS(config)
+            return obj
 
     @abstractmethod
-    def _upsert(self, ids: List[str], embeddings: Union[List[List[List[float]]], Dict[str, csr_array]]):
+    def _upsert(self, ids: List[str], embeddings_lst: Union[List[List[List[float]]], List[csr_array]]):
         pass
 
     @abstractmethod
@@ -121,9 +135,10 @@ class FileBackedSparseVS(BaseVectorSet):
     def has(self, id: str) -> bool:
         return id in self.rows
 
-    def _upsert(self, batch: Dict[str, csr_array]):
-        for doc_id, mat in batch.items():
-            self.rows[doc_id] = mat
+    def _upsert(self, ids: List[str], embeddings_lst: List[csr_array]):
+        assert len(ids) == len(embeddings_lst)
+        for doc_id, embeddings in zip(ids, embeddings_lst):
+            self.rows[doc_id] = embeddings
 
     def retrieve(self, ids: List[str]) -> Dict[str, csr_array]:
         assert all(doc_id in self.rows for doc_id in ids)

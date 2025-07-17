@@ -3,7 +3,7 @@ from typing import List, Dict, Any
 import json
 import logging
 
-logger = logging.getLogger('taihu')
+logger = logging.getLogger(__name__)
 class Library: 
     '''
     A base class that stores and retrieves documents based on their IDs.

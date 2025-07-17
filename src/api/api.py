@@ -12,7 +12,7 @@ from enum import Enum
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from src.run.adaptor import AppFactory
-from src.core.app import SearchApp
+from src.core.app import App
 from src.core.document import Document
 from src.core.filter import Filter
 from src.utils.metrics import MetricsTracker
@@ -72,13 +72,13 @@ app = FastAPI(
 
 # === Global State ===
 # Cache for initialized SearchApp instances per dataset
-search_apps: Dict[str, SearchApp] = {}
+search_apps: Dict[str, App] = {}
 document_classes: Dict[str, Type[Document]] = {}
 filter_classes: Dict[str, Type[Filter]] = {}
 metrics_tracker = MetricsTracker()
 
 # === Helper Functions ===
-async def get_or_create_search_app(dataset: str) -> tuple[SearchApp, Type[Document], Type[Filter]]:
+async def get_or_create_search_app(dataset: str) -> tuple[App, Type[Document], Type[Filter]]:
     """Get or create SearchApp for the specified dataset using the APP pattern."""
     if dataset not in search_apps:
         logger.info(f"Initializing SearchApp for dataset: {dataset}")

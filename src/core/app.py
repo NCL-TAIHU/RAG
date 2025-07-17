@@ -32,7 +32,7 @@ logger = setup_logger(
     level = "DEBUG"  # Set to DEBUG for detailed logs
 )
 
-class SearchApp(StoredObj):
+class App(StoredObj):
     '''
     A search application that uses a combination of dense and sparse embeddings to retrieve relevant documents.
     The static methods are contextually static, meaning that their functionality does not depend on the instance state, 
@@ -77,7 +77,7 @@ class SearchApp(StoredObj):
         }
     
     @classmethod
-    def from_config(cls, config: AppConfig) -> 'SearchApp':
+    def from_config(cls, config: AppConfig) -> 'App':
         dataloader = DataLoader.from_default(dataset=config.dataset)
         search_engines = [SearchEngine.from_config(sconfig) for sconfig in config.search_engines]
         router = BaseRouter.from_config(config.router)

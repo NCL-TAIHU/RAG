@@ -1,5 +1,5 @@
 from src.run.adaptor import AppFactory
-from src.core.app import SearchApp
+from src.core.app import App
 from src.core.filter import NCLFilter, Filter
 from src.utils.logging import setup_logger
 import logging
@@ -13,7 +13,7 @@ logger = setup_logger(
     level = logging.DEBUG
 )
 
-def interact(app: SearchApp): 
+def interact(app: App): 
     print("\n📚 Welcome to the Interactive Search App!")
     print("Type your query and press Enter to search.")
     print("Type `:rag` to toggle RAG mode, `:topk <num>` to change result count, or `:exit` to quit.")
@@ -59,7 +59,7 @@ def interact(app: SearchApp):
             print("\n💬 LLM Response:")
             print(response["generation"])
 
-def test(app: SearchApp): 
+def test(app: App): 
     filters = [
         NCLFilter().set_fields(year=[109]), 
         NCLFilter().set_fields(category=["碩士"]),

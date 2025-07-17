@@ -15,8 +15,8 @@ class StoredObj(ABC):
         """
         pass
 
-    @abstractmethod
     @classmethod
+    @abstractmethod
     def from_config(cls, config: 'StoredConfig') -> 'StoredObj':
         """
         Creates an instance from a configuration object.
