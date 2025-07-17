@@ -3,10 +3,11 @@ from unittest.mock import patch, MagicMock, mock_open
 from src.core.collection import (
     CollectionBuilder, CollectionConfig, FieldConfig, IndexConfig
 )
-from pymilvus import Collection, utility, DataType
+from pymilvus import Collection, utility, DataType, connections
 
 
 class TestCollectionBuilder(unittest.TestCase):
+    connections.connect()
 
     def setUp(self):
         # ✅ Use pymilvus DataType enums (not strings)
@@ -17,7 +18,7 @@ class TestCollectionBuilder(unittest.TestCase):
                 FieldConfig(name="dense_vector", dtype=DataType.FLOAT_VECTOR, dim=128)
             ],
             indexes=[
-                IndexConfig(field_name="dense_vector", index_params={"index_type": "IVF_FLAT"})
+                IndexConfig(field_name="dense_vector", index_params={"index_type": "IVF_FLAT", "metric_type": "L2"})
             ],
             consistency_level="Strong"
         )
@@ -90,6 +91,18 @@ class TestCollectionBuilder(unittest.TestCase):
         mock_json_load.return_value = {**self.config.model_dump(), "collection_name": "wrong_name"}
         result = self.builder.get_existing()
         self.assertIsNone(result)
+
+    def check_the_collection_content(self):
+        """check the collection content"""
+        collection = self.builder.build()
+        print(collection.num_entities)
+        print(collection.schema)
+        print(collection.load())
+        print(collection.query("", limit=10))
+
+    def test_check_the_collection_content(self):
+        """check the collection content"""
+        self.check_the_collection_content()
 
 
 if __name__ == "__main__":
