@@ -1,0 +1,28 @@
+id: test_app
+name: Test App
+dataset: ncl
+description: A test application for vector set operations
+search_engines:
+- type: milvus
+  vector_set:
+    id: ncl_test
+    root: tests/storage/vector_set/ncl_test
+    dataset: ncl
+    channel: abstract_chinese
+    chunker:
+      type: length_chunker
+      chunk_size: 512
+      overlap: 50
+    embedder:
+      type: auto_model
+      embedding_type: dense
+      model_name: sentence-transformers/all-MiniLM-L6-v2
+router:
+  type: simple
+reranker:
+  type: identity
+max_files: 1000000
+weave_url: null
+created_by: null
+created_at: null
+updated_at: null

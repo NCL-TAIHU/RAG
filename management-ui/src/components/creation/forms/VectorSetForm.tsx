@@ -54,10 +54,10 @@ export default function VectorSetForm({ dataset, vectorSets, onChange }: Props) 
     const chunker: ChunkerConfig = chunkerType === "length_chunker" ? lengthChunker : sentenceChunker;
 
     const newSet: VectorSetConfig = {
-      dataset,
-      channel,
-      embedder,
-      chunker
+      dataset: dataset,
+      channel: channel,
+      embedder: embedder,
+      chunker: chunker
     };
 
     onChange([...vectorSets, newSet]);
