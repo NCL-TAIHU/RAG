@@ -11,7 +11,7 @@ from src.core.router import Router
 from src.core.reranker import Reranker
 from src.core.vector_manager import VectorManager
 from src.core.vector_store import SparseVS, DenseVS, BaseVS, FileBackedDenseVS, FileBackedSparseVS, VSMetadata
-from src.core.chunker import BaseChunker, LengthChunker
+from src.core.chunker import BaseChunker, LengthChunker, SentenceChunker
 from src.core.util import coalesce
 import yaml
 from typing import List
@@ -125,7 +125,7 @@ class AppFactory:
             )
 
             elastic = ElasticSearchEngine(
-                "https://localhost:9201", 
+                "https://localhost:9200", 
                 document_cls=DOC_CLS, 
                 filter_cls=FILT_CLS, 
                 es_index=f"{dataset}"
@@ -140,7 +140,7 @@ class AppFactory:
             router = "simple"
             reranker = IdentityReranker()
             return cls(engines=[engine], library=library, dataloader=dataloader,
-                       router_name=router, reranker=reranker, max_files=1000000)
+                       router_name=router, reranker=reranker, max_files=1000)
 
 
     def build(self) -> SearchApp: 
