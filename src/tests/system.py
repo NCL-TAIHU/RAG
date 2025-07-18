@@ -62,3 +62,4 @@ start_time = time.time()
 results = app.search(query=search_query, filter=filt, limit=5)
 end_time = time.time()
 logger.info(f"Search completed in {end_time - start_time:.2f} seconds.")
+#app_with_id --> register --> activate --> get_obj

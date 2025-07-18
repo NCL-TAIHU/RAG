@@ -9,13 +9,14 @@ from src.run.state import BaseState
 from src.core.vector_set import BaseVectorSet
 from src.core.schema import VectorSetConfig, AppConfig
 from src.core.app import App
+from src.core.filter import Filter
 import yaml
 import os
 app = FastAPI()
 app_config = yaml.safe_load(open("config/app.yml", "r", encoding="utf-8"))
 vector_set_config = yaml.safe_load(open("config/vector_set.yml", "r", encoding="utf-8"))
 
-
+#load --> activate
 app_state = BaseState[AppConfig, App](
     config_cls=AppConfig,
     obj_cls=App,
@@ -80,3 +81,17 @@ def delete_app(name: str):
         return {"status": "removed"}
     except KeyError:
         raise HTTPException(status_code=404, detail="App not found")
+
+@app.get("/search/{app_id}")
+def search(app_id, query, filt):
+    try:
+        app = app_state.get_obj(app_id)
+        app_config = app_state.get_config(app_id)
+        filt_cls = Filter.from_dataset(app_config.dataset)
+        f = filt_cls.model_validate(filt)
+        results = app.search(query=query, filter=f, limit=5)
+        return results
+    except KeyError:
+        raise HTTPException(status_code=404, detail="App not found")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
