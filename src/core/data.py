@@ -1,4 +1,4 @@
-from src.core.document import Document, NCLDocument, Info, LitSearchDocument
+from src.core.document import Document, NCLDocument, Info, LitSearchDocument, NCL_LLM_SummaryDocument
 import os
 from typing import Any, Iterator, List, Dict
 import json
@@ -7,6 +7,7 @@ from datasets import load_dataset
 from tqdm import tqdm
 from src.core.util import coalesce
 import uuid
+from src.core.preprocess import PreprocessConfig, PreprocessorFactory
 
 class DataLoader: 
     def load(self, *args, **kwargs) -> Iterator[List[Document]]:
@@ -59,6 +60,11 @@ class DataLoader:
                 buffer_size=buffer_size
             )
         
+        elif dataset == "ncl_llm_summary":
+            return NCL_LLM_SummaryDataLoader(
+                base_path=config[dataset]['path'],
+                buffer_size=buffer_size
+            )
         else:
             raise ValueError(f"Unknown dataset: {dataset}")
         
@@ -116,49 +122,46 @@ class PathsDataLoader(DataLoader):
 class NCLDataLoader(DataLoader):
     def __init__(self, base_path: str, buffer_size: int = 64):
         """
-        Initializes the NCLDataLoader.
-
+        NCLDataLoader that uses the preprocessing interface.
+        
         Args:
-            base_path (str): Path to the directory containing .jsonl files.
-            buffer_size (int, optional): Number of documents per batch. Defaults to 64.
+            base_path (str): Path to data directory
+            buffer_size (int): Batch size
         """
         self.base_path = base_path
-        self.json_paths = [os.path.join(base_path, f) for f in os.listdir(base_path) if f.endswith('.jsonl')]
         self.buffer_size = buffer_size
         self.documents: List[Document] = []
+        
+        # Create preprocessor
+        config = PreprocessConfig(input_path=base_path)
+        self.preprocessor = PreprocessorFactory.create("ncl", config)
 
     def stream(self) -> Iterator[Document]:
-        counter = 0
-        for path in self.json_paths: 
-            with open(path, 'r', encoding='utf-8') as f:
+        """Stream documents using the preprocessing workflow"""
+        for file_path in self._get_input_files():
+            with open(file_path, 'r', encoding='utf-8') as f:
                 for line in f:
-                    if not line.strip():
-                        continue
-                    data: Dict = json.loads(line)
-                    yield NCLDocument(
-                        id=data['uid'],
-                        year=data.get("畢業學年度", None), 
-                        category=data.get("學位類別", None),
-                        chinese=Info(
-                            title=data.get("論文名稱", None),
-                            school=data.get("學校名稱", None),
-                            dept=data.get("系所名稱", None),
-                            abstract=data.get("摘要", None),
-                            authors=data.get("作者", "").splitlines(),
-                            advisors=data.get("指導教授", "").splitlines()
-                        ),
-                        english=Info(
-                            title=data.get("論文名稱(外文)", None),
-                            school=data.get("學校名稱(外文)", None), 
-                            dept=data.get("系所名稱(外文)", None), 
-                            abstract=data.get("摘要(外文)", None),  
-                            authors=data.get("作者(外文)", "").splitlines(),
-                            advisors=data.get("指導教授(外文)", "").splitlines()
-                        ), 
-                        link=data.get("博碩士論文網址", None), 
-                        keywords=[]
-                    )
-                    counter += 1
+                    if line.strip():
+                        try:
+                            raw_data = json.loads(line)
+                            # Use the preprocessing workflow
+                            document = self.preprocessor.process_record(raw_data)
+                            if document:  # Only yield valid documents
+                                yield document
+                        except Exception as e:
+                            print(f"Error processing line: {e}")
+                            continue
+
+    def _get_input_files(self) -> List[str]:
+        """Get list of input files to process"""
+        if os.path.isfile(self.base_path):
+            return [self.base_path]
+        else:
+            files = []
+            for f in os.listdir(self.base_path):
+                if f.endswith('.jsonl'):
+                    files.append(os.path.join(self.base_path, f))
+            return files
 
     def load(self) -> Iterator[List[Document]]:
         for doc in self.stream():
@@ -237,6 +240,65 @@ class LitSearchDataLoader(DataLoader):
             return [text[span["start"]:span["end"]] for span in spans]
         except Exception:
             return []
+
+    def load(self) -> Iterator[List[Document]]:
+        for doc in self.stream():
+            yield from self._handle(doc)
+        yield from self._flush()
+
+    def _handle(self, document: Document) -> Iterator[List[Document]]:
+        self.documents.append(document)
+        if len(self.documents) >= self.buffer_size:
+            yield from self._flush()
+
+    def _flush(self) -> Iterator[List[Document]]:
+        if self.documents:
+            yield self.documents
+            self.documents = []
+
+class NCL_LLM_SummaryDataLoader(DataLoader):
+    def __init__(self, base_path: str, buffer_size: int = 64):
+        """
+        NCLDataLoader that uses the preprocessing interface.
+        
+        Args:
+            base_path (str): Path to data directory
+            buffer_size (int): Batch size
+        """
+        self.base_path = base_path
+        self.buffer_size = buffer_size
+        self.documents: List[Document] = []
+        
+        # Create preprocessor
+        config = PreprocessConfig(input_path=base_path)
+        self.preprocessor = PreprocessorFactory.create("ncl_llm_summary", config)
+
+    def stream(self) -> Iterator[Document]:
+        """Stream documents using the preprocessing workflow"""
+        for file_path in self._get_input_files():
+            with open(file_path, 'r', encoding='utf-8') as f:
+                for line in f:
+                    if line.strip():
+                        try:
+                            raw_data = json.loads(line)
+                            # Use the preprocessing workflow
+                            document = self.preprocessor.process_record(raw_data)
+                            if document:  # Only yield valid documents
+                                yield document
+                        except Exception as e:
+                            print(f"Error processing line: {e}")
+                            continue
+
+    def _get_input_files(self) -> List[str]:
+        """Get list of input files to process"""
+        if os.path.isfile(self.base_path):
+            return [self.base_path]
+        else:
+            files = []
+            for f in os.listdir(self.base_path):
+                if f.endswith('.jsonl'):
+                    files.append(os.path.join(self.base_path, f))
+            return files
 
     def load(self) -> Iterator[List[Document]]:
         for doc in self.stream():

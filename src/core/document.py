@@ -87,8 +87,10 @@ class Document:
             return NCLDocument
         elif dataset_name == "litsearch":
             return LitSearchDocument
+        elif dataset_name == "ncl_llm_summary":
+            return NCL_LLM_SummaryDocument
         else:
-            raise ValueError(f"Unsupported dataset: {dataset_name}. Supported datasets are 'ncl' and 'litsearch'.")
+            raise ValueError(f"Unsupported dataset: {dataset_name}. Supported datasets are 'ncl', 'litsearch', and 'ncl_llm_summary'.")
 
 # --------------NCL Document -----------------
 # --- Info object for language-specific fields ---
@@ -223,4 +225,73 @@ LitSearchDocument.SCHEMA_INSTANCE = LitSearchDocument(
     year=None,
     pdfurl=None,
     externalids={}
+)
+
+# --- NCL+LLM Summary Document concrete class ---
+class NCL_LLM_SummaryDocument(Document, BaseModel):
+    """
+    A document representation for the NCL (National Central Library) dataset.
+
+    Attributes:
+        SCHEMA_INSTANCE (ClassVar): Singleton instance used for schema binding or validation.
+        id (str): Unique identifier for the document.
+        year (Optional[int]): Graduation year of the thesis.
+        category (Optional[str]): Degree category (e.g., Master's, PhD).
+        chinese (Info): Language-specific metadata in Chinese.
+        english (Info): Language-specific metadata in English.
+        link (Optional[str]): URL link to the full thesis.
+        keywords (List[str]): Keywords associated with the document.
+    """
+
+    SCHEMA_INSTANCE: ClassVar["NCL_LLM_SummaryDocument"]
+
+    id: str
+    year: Optional[int] = None
+    category: Optional[str] = None
+    chinese: Info
+    english: Info
+    link: Optional[str] = None
+    keywords: Optional[List[str]] = None
+    llm_questions: Optional[List[str]] = None
+
+    def key(self) -> str:
+        return self.id
+
+    def metadata(self) -> Dict[str, Field]:
+        data = [
+            Field(name="year", contents=[self.year] if self.year else [], type=FieldType.INTEGER, max_len=4),
+            Field(name="category", contents=[self.category] if self.category else [], type=FieldType.STRING, max_len=64),
+            Field(name="link", contents=[self.link] if self.link else [], type=FieldType.STRING, max_len=256),
+            Field(name="keywords", contents=self.keywords, type=FieldType.STRING, max_len=256),
+            Field(name="school_chinese", contents=[self.chinese.school] if self.chinese.school else [], type=FieldType.STRING, max_len=128),
+            Field(name="school_english", contents=[self.english.school] if self.english.school else [], type=FieldType.STRING, max_len=128),
+            Field(name="dept_chinese", contents=[self.chinese.dept] if self.chinese.dept else [], type=FieldType.STRING, max_len=128),
+            Field(name="dept_english", contents=[self.english.dept] if self.english.dept else [], type=FieldType.STRING, max_len=128),
+            Field(name="authors_chinese", contents=self.chinese.authors or [], type=FieldType.STRING, max_len=256),
+            Field(name="authors_english", contents=self.english.authors or [], type=FieldType.STRING, max_len=256),
+            Field(name="advisors_chinese", contents=self.chinese.advisors or [], type=FieldType.STRING, max_len=256),
+            Field(name="advisors_english", contents=self.english.advisors or [], type=FieldType.STRING, max_len=256),
+        ]
+        return {f.name: f for f in data}
+
+    def content(self) -> Dict[str, Field]:
+        data = [
+            Field(name="abstract_chinese", contents=[self.chinese.abstract] if self.chinese.abstract else [], type=FieldType.STRING, max_len=1024),
+            Field(name="abstract_english", contents=[self.english.abstract] if self.english.abstract else [], type=FieldType.STRING, max_len=1024),
+            Field(name="title_chinese", contents=[self.chinese.title] if self.chinese.title else [], type=FieldType.STRING, max_len=256),
+            Field(name="title_english", contents=[self.english.title] if self.english.title else [], type=FieldType.STRING, max_len=256),
+            Field(name="llm_questions", contents=self.llm_questions, type=FieldType.STRING, max_len=1024),
+        ]
+        return {f.name: f for f in data}
+    
+# --- Define the singleton schema instance ---
+NCL_LLM_SummaryDocument.SCHEMA_INSTANCE = NCL_LLM_SummaryDocument(
+    id="",
+    year=None,
+    category=None,
+    link=None,
+    keywords=[],
+    chinese=Info(),
+    english=Info(),
+    llm_questions=None
 )
