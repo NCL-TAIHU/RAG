@@ -4,6 +4,9 @@ arxiv:
 ncl: 
   path: /home/share/data/ncl_json
 
+ncl_llm_summary: 
+  path: /home/wenjieluu1130/RAG/data/test/108.jsonl
+
 history: 
   path: data/history
 
