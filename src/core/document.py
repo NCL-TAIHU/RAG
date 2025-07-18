@@ -65,7 +65,7 @@ class Document:
     def metadata(self) -> Dict[str, Field]:
         raise NotImplementedError
 
-    def content(self) -> Dict[str, Field]:
+    def channels(self) -> Dict[str, Field]:
         raise NotImplementedError
 
     @classmethod
@@ -76,7 +76,7 @@ class Document:
     @classmethod
     def content_schema(cls) -> Dict[str, Field]:
         assert cls.SCHEMA_INSTANCE is not None, "Document schema instance is not initialized."
-        return cls.SCHEMA_INSTANCE.content()
+        return cls.SCHEMA_INSTANCE.channels()
     
     @classmethod
     def from_dataset(cls, dataset_name: str) -> Type["Document"]:
@@ -157,7 +157,7 @@ class NCLDocument(Document, BaseModel):
         ]
         return {f.name: f for f in data}
 
-    def content(self) -> Dict[str, Field]:
+    def channels(self) -> Dict[str, Field]:
         data = [
             Field(name="abstract_chinese", contents=[self.chinese.abstract] if self.chinese.abstract else [], type=FieldType.STRING, max_len=1024),
             Field(name="abstract_english", contents=[self.english.abstract] if self.english.abstract else [], type=FieldType.STRING, max_len=1024),
@@ -206,7 +206,7 @@ class LitSearchDocument(Document, BaseModel):
         ]
         return {f.name: f for f in data}
 
-    def content(self) -> Dict[str, Field]:
+    def channels(self) -> Dict[str, Field]:
         data = [
             Field(name="abstract", contents=[self.abstract] if self.abstract else [], type=FieldType.STRING, max_len=2048), 
             Field(name="title", contents=[self.title] if self.title else [], type=FieldType.STRING, max_len=256),

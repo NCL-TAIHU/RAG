@@ -37,7 +37,7 @@ class PromptBuilder():
         """添加文檔到提示中"""
         if not documents:
             return self
-        results = "\n".join([f"{doc.content()}" for doc in documents])
+        results = "\n".join([f"{doc.channels()}" for doc in documents])
         self.add_retrieval_results(results)
         return self
     

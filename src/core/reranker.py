@@ -61,7 +61,7 @@ class AutoModelReranker(BaseReranker):
         """
         Flatten a document’s content fields into a single string.
         """
-        content_fields = doc.content()
+        content_fields = doc.channels()
         return " ".join(
             f"{field.name}: {' '.join(map(str, field.contents))}" 
             for field in content_fields.values()

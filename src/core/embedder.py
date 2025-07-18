@@ -14,7 +14,7 @@ import yaml
 from src.core.schema import EmbedderConfig, AutoModelEmbedderConfig, BGEEmbedderConfig
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('taihu')
 model_config = yaml.safe_load(open("config/model.yml", "r"))
 
 class BaseEmbedder:

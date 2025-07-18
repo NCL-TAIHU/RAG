@@ -5,9 +5,9 @@ from src.tests.const import NCL_DENSE_VS
 import logging
 from src.utils.logging import setup_logger
 
-logger = setup_logger("vector_set_test", console=True, file=False, level=logging.DEBUG)
+logger = setup_logger("taihu", console=True, file=False, level=logging.DEBUG)
 
-CONFIG_DIR = "tests/configs/vector_set"
+CONFIG_DIR = "_tests/configs/vector_set"
 state = BaseState[VectorSetConfig, BaseVectorSet](
     config_cls=VectorSetConfig,
     obj_cls=BaseVectorSet,

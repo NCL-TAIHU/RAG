@@ -39,8 +39,8 @@ def get_first_content(doc: Document) -> str:
         Helper method to extract the first content from a Document.
         If the document has no content, returns an empty string.
         """
-        if doc.content():
-            first_field = next(iter(doc.content().values()))
+        if doc.channels():
+            first_field = next(iter(doc.channels().values()))
             if first_field.contents:
                 return first_field.contents[0]
             else: 

@@ -3,7 +3,7 @@ from src.core.schema import VectorSetConfig, LengthChunkerConfig, AutoModelEmbed
 ID = "ncl_test"
 NCL_DENSE_VS = VectorSetConfig(
     id=ID,
-    root=f"tests/storage/vector_set/{ID}", 
+    root=f"_tests/storage/vector_set/{ID}", 
     dataset="ncl", 
     channel="abstract_chinese", 
     chunker=LengthChunkerConfig(

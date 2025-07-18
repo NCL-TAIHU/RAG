@@ -20,7 +20,7 @@ import logging
 from scipy.sparse import csr_array, vstack
 from src.core.util import coalesce
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('taihu')
 model_config = yaml.safe_load(open("config/model.yml", "r"))
 class SearchSpec(BaseModel):
     '''

@@ -17,6 +17,7 @@ from src.core.manager import Manager
 from src.core.reranker import IdentityReranker
 from src.core.interface import StoredObj
 from tqdm import tqdm
+import logging
 CHATBOT = "meta-llama/Llama-3.1-8B-Instruct"
 DENSE_EMBEDDER = "sentence-transformers/all-MiniLM-L6-v2"
 SPARSE_EMBEDDER = "BAAI/bge-m3"
@@ -24,13 +25,7 @@ DATASET = "ncl"  # Default dataset to use
 DOC_CLS = Document.from_dataset(DATASET)  # Default document class based on dataset
 FILT_CLS = Filter.from_dataset(DATASET)  # Default filter class based on dataset
 
-logger = setup_logger(
-    name = 'search_app',
-    log_file = 'logs/output.log', 
-    console = True,
-    file = False,
-    level = "DEBUG"  # Set to DEBUG for detailed logs
-)
+logger = logging.getLogger('taihu')
 
 class App(StoredObj):
     '''
@@ -48,6 +43,7 @@ class App(StoredObj):
         self.llm: Agent = None
 
     def setup(self):
+        logger.info(f"Setting up application with max_files={self.max_files}")
         self.manager.setup()
         count = 0
         for documents in tqdm(self.data_loader.load(), desc="Embedding batches"):

@@ -118,7 +118,7 @@ def format_search_results(results: List[Document], doc_cls: Type[Document]) -> L
     
     for hit in results:
         # Extract title and content from document content fields
-        content_fields = hit.content()
+        content_fields = hit.channels()
         
         title = ""
         content = ""

@@ -51,7 +51,7 @@ def interact(app: App):
 
         for i, doc in enumerate(results, 1):
             print(f"[{i}] {doc.key()}")
-            for field, data in doc.content().items():
+            for field, data in doc.channels().items():
                 print(f"   {field}: {data.contents}...")
 
         if rag_enabled:
@@ -85,7 +85,7 @@ def test(app: App):
             continue
         for i, doc in enumerate(results, 1):
             print(f"[{i}] {doc.key()}")
-            for field, data in doc.content().items():
+            for field, data in doc.channels().items():
                 print(f"   {field}: {data.contents}...")
 
         response = app.rag(query, results)

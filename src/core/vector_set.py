@@ -11,7 +11,7 @@ from src.core.document import Document
 from src.core.data import DataLoader
 from tqdm import tqdm
 import logging
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('taihu')
 
 class BaseVectorSet(StoredObj):
     def __init__(self, config: VectorSetConfig):
@@ -25,11 +25,11 @@ class BaseVectorSet(StoredObj):
         return self._config
 
     def upsert(self, docs: List[Document]):
-        contents = self.chunker.chunk([" ".join(doc.content()[self.channel].contents) for doc in docs])
+        contents = self.chunker.chunk([" ".join(doc.channels()[self.channel].contents) for doc in docs])
         assert len(contents) == len(docs), "Chunker should return same number of chunks as documents"
         ids = [doc.key() for doc in docs]
         embeddings = self.embedder.embed_chunks(ids, contents)
-        self._upsert(ids, embeddings)
+        self.update(embeddings)
 
     def setup(self):
         logger.info(f"Setting up vector set at {self.root}")
@@ -43,6 +43,7 @@ class BaseVectorSet(StoredObj):
         self.save()
 
     def save(self):
+        logger.info(f"Saving vector set to {self.root}")
         os.makedirs(self.root, exist_ok=True)
         self._save_vectors()
         with open(os.path.join(self.root, "id.txt"), "w", encoding="utf-8") as f:
@@ -75,7 +76,7 @@ class BaseVectorSet(StoredObj):
             return obj
 
     @abstractmethod
-    def _upsert(self, ids: List[str], embeddings_lst: Union[List[List[List[float]]], List[csr_array]]):
+    def update(self, embeddings: Dict[str, Union[List[List[float]], csr_array]]):
         pass
 
     @abstractmethod
@@ -103,10 +104,8 @@ class FileBackedDenseVS(BaseVectorSet):
     def has(self, id: str) -> bool:
         return id in self.vectors
 
-    def _upsert(self, ids: List[str], embeddings_lst: List[List[List[float]]]):
-        assert len(ids) == len(embeddings_lst)
-        for doc_id, embeddings in zip(ids, embeddings_lst):
-            self.vectors[doc_id] = embeddings
+    def update(self, embeddings: Dict[str, List[List[float]]]):
+        self.vectors.update(embeddings)
 
     def retrieve(self, ids: List[str]) -> Dict[str, List[List[float]]]:
         assert all(doc_id in self.vectors for doc_id in ids)
@@ -135,10 +134,8 @@ class FileBackedSparseVS(BaseVectorSet):
     def has(self, id: str) -> bool:
         return id in self.rows
 
-    def _upsert(self, ids: List[str], embeddings_lst: List[csr_array]):
-        assert len(ids) == len(embeddings_lst)
-        for doc_id, embeddings in zip(ids, embeddings_lst):
-            self.rows[doc_id] = embeddings
+    def update(self, embeddings: Dict[str, csr_array]):
+        self.rows.update(embeddings)
 
     def retrieve(self, ids: List[str]) -> Dict[str, csr_array]:
         assert all(doc_id in self.rows for doc_id in ids)

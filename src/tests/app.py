@@ -13,8 +13,9 @@ from src.tests.const import NCL_DENSE_VS
 
 import logging
 
-logger = setup_logger("vector_set_test", console=True, file=False, level=logging.DEBUG)
-CONFIG_DIR = "tests/configs/app"
+logger = setup_logger("app_test", console=True, file=False, level=logging.DEBUG)
+
+CONFIG_DIR = "_tests/configs/app"
 state = BaseState[AppConfig, App](
     config_cls=AppConfig,
     obj_cls=App,

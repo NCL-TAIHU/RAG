@@ -5,7 +5,7 @@ import json
 from typing import Dict
 import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('taihu')
 
 class ElasticIndexConfig(BaseModel):
     es_index: str
