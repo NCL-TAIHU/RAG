@@ -60,23 +60,64 @@ def search_documents(query, dataset="ncl", limit=5):
         return None
 
 def print_results(results):
-    """Print search results in a simple format."""
+    """Print search results with comprehensive document details."""
     if not results:
         return
     
     print(f"\n🔍 Dataset: {results['dataset']}")
     print(f"📊 Found {len(results['results'])} results")
     print(f"⏱️  Query time: {results['query_time']:.3f}s")
-    print("=" * 60)
+    print("=" * 80)
     
     print("\n📝 Results:")
     for i, result in enumerate(results['results'], 1):
         print(f"[{i}] {result['title']}")
-        print(f"    Content: {result['content'][:150]}...")
+        if result.get('title_english'):
+            print(f"    English Title: {result['title_english']}")
+        
+        print(f"    Abstract: {result['abstract'][:200]}...")
+        if result.get('abstract_english'):
+            print(f"    English Abstract: {result['abstract_english'][:200]}...")
+        
+        if result.get('authors'):
+            print(f"    Authors: {', '.join(result['authors'])}")
+        if result.get('advisors'):
+            print(f"    Advisors: {', '.join(result['advisors'])}")
+        
+        if result.get('school') or result.get('department'):
+            school_dept = []
+            if result.get('school'):
+                school_dept.append(result['school'])
+            if result.get('department'):
+                school_dept.append(result['department'])
+            print(f"    Institution: {' - '.join(school_dept)}")
+        
+        if result.get('year') or result.get('category'):
+            year_cat = []
+            if result.get('year'):
+                year_cat.append(str(result['year']))
+            if result.get('category'):
+                year_cat.append(result['category'])
+            print(f"    Year/Category: {' - '.join(year_cat)}")
+        
+        if result.get('keywords'):
+            print(f"    Keywords: {', '.join(result['keywords'][:5])}...")
+        
+        if result.get('link'):
+            print(f"    Link: {result['link']}")
+        
+        if result.get('llm_questions'):
+            print(f"    🤖 LLM Questions:")
+            for i, question in enumerate(result['llm_questions'][:3], 1):
+                print(f"      {i}. {question}")
+            if len(result['llm_questions']) > 3:
+                print(f"      ... and {len(result['llm_questions']) - 3} more questions")
+        
+        print("-" * 80)
     
-    print("=" * 60)
+    print("=" * 80)
     print(f"\n🤖 LLM Response:\n{results['llm_response']}")
-    print("=" * 60)
+    print("=" * 80)
 
 def main():
     """Main function to test the API."""
