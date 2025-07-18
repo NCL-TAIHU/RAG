@@ -65,7 +65,7 @@ if __name__ == "__main__":
     evaluator = SearchAppEvaluator()
     for k in list(range(1, 11)) + list(range(20, 101, 10)):
         hybrid_report = evaluator.evaluate_hybrid(app, factory.stream(), k)
-        hybrid_report.description = ("Content schema: \n" + '\n'.join([f.to_string() for f in DOC_CLS.content_schema().values()]) +
+        hybrid_report.description = ("Content schema: \n" + '\n'.join([f.to_string() for f in DOC_CLS.channels_schema().values()]) +
                                     "\n Metadata schema: \n" + "\n".join([f.to_string() for f in DOC_CLS.metadata_schema().values()])  +
                                     "\n Filter must fields: \n" + '\n'.join(FILT_CLS.must_fields()) +
                                     "\n Filter filter fields: \n" + '\n'.join(FILT_CLS.filter_fields()))  

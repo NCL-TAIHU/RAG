@@ -25,6 +25,7 @@ class BaseVectorSet(StoredObj):
         return self._config
 
     def upsert(self, docs: List[Document]):
+        if not docs: return 
         contents = self.chunker.chunk([" ".join(doc.channels()[self.channel].contents) for doc in docs])
         assert len(contents) == len(docs), "Chunker should return same number of chunks as documents"
         ids = [doc.key() for doc in docs]

@@ -46,7 +46,7 @@ class App(StoredObj):
         logger.info(f"Setting up application with max_files={self.max_files}")
         self.manager.setup()
         count = 0
-        for documents in tqdm(self.data_loader.load(), desc="Embedding batches"):
+        for documents in tqdm(self.data_loader.load(), desc="Setup app: Inserting documents"):
             self.manager.insert(documents)
             count += len(documents)
             if count >= self.max_files:

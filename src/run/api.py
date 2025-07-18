@@ -47,7 +47,7 @@ app = FastAPI(lifespan=lifespan)
 
 @app.get("/app_state/apps")
 def list_apps():
-    return app_state.list_apps()
+    return app_state.list_ids()
 
 @app.get("/app_state/app/{id}")
 def get_app_metadata(id: str):

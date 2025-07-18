@@ -66,6 +66,9 @@ class Document:
         raise NotImplementedError
 
     def channels(self) -> Dict[str, Field]:
+        """
+        A string that can be used to represent the content of the document.
+        """
         raise NotImplementedError
 
     @classmethod
@@ -74,7 +77,7 @@ class Document:
         return cls.SCHEMA_INSTANCE.metadata()
 
     @classmethod
-    def content_schema(cls) -> Dict[str, Field]:
+    def channels_schema(cls) -> Dict[str, Field]:
         assert cls.SCHEMA_INSTANCE is not None, "Document schema instance is not initialized."
         return cls.SCHEMA_INSTANCE.channels()
     

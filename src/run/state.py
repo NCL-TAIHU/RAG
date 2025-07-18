@@ -31,7 +31,7 @@ class BaseState(Generic[T, S]):
                     except ValidationError as e:
                         print(f"[WARN] Skipping invalid config file {fname}: {e}")
 
-    def list_apps(self) -> List[str]:
+    def list_ids(self) -> List[str]:
         return list(self._configs.keys())
 
     def get_config(self, id: str) -> T:
@@ -50,7 +50,7 @@ class BaseState(Generic[T, S]):
         obj.setup()
         self._objs[id] = obj
 
-    def get_app(self, name: str) -> S:
+    def get_obj(self, name: str) -> S:
         return self._objs[name]
 
     def remove_app(self, id: str):

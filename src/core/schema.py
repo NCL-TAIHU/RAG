@@ -38,6 +38,7 @@ ChunkerConfig = Union[LengthChunkerConfig, SentenceChunkerConfig]
 
 # ---------------- VectorSet ----------------
 class VectorSetConfig(StoredConfig):
+    # id: str # Already provided by StoredConfig
     root: str
     dataset: str
     channel: str
@@ -81,6 +82,7 @@ class AppConfig(StoredConfig):
     A image of an existing app that is ready to be activated. 
     Front-end form data has to be enriched by backend with weave urls, ids, timestamps, and vector store roots to reach this stage. 
     '''
+    # id: str # Already provided by StoredConfig
     name: str
     dataset: str
     description: Optional[str] = None

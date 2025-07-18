@@ -496,9 +496,8 @@ class MilvusSearchEngine(SearchEngine):
         vector = self.embed_query(query)
         expr = self._get_query(filter)
         results = self.operator.search(
-            data=vector,
+            query_vector=vector,
             anns_field=self.vector_type + "_vector",
-            param={},
             limit=limit,
             expr=expr,
             output_fields=["pk"]

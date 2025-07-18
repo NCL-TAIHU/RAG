@@ -160,14 +160,14 @@ class CollectionOperator:
         self.collection.load()
         search_params = {"metric_type": "IP", "params": {}}
         results = self.collection.search(
-            data=query_vector,
+            data=[query_vector],
             anns_field=anns_field,
             param=search_params,
             limit=limit,
             expr=expr, 
             output_fields=output_fields, 
         )
-        return results[0] if results else []
+        return results
 
     def search_hybrid(
         self,

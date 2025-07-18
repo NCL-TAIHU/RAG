@@ -10,6 +10,7 @@ import numpy as np
 import contextlib
 import io
 import GPUtil
+import traceback
 import yaml
 from src.core.schema import EmbedderConfig, AutoModelEmbedderConfig, BGEEmbedderConfig
 
@@ -152,7 +153,9 @@ class AutoModelEmbedder(DenseEmbedder):
         Embeds a list of texts into a list of vectors.
         '''
         if texts is None or len(texts) == 0:
+            #logger.warning("No texts provided for embedding." + "".join(traceback.format_stack()))
             logger.warning("No texts provided for embedding.")
+            logger.debug("Stack trace:\n" + "".join(traceback.format_stack()))
             return []
         embeddings = []
         for i in range(0, len(texts), self.batch_size):
