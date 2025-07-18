@@ -3,7 +3,7 @@ from pydantic import BaseModel, create_model
 from enum import Enum
 from pymilvus import DataType
 from dataclasses import dataclass
-from src.core.document import Document, NCLDocument, LitSearchDocument
+from src.core.document import Document, NCLDocument, LitSearchDocument, NCL_LLM_SummaryDocument
 
 class Filter(BaseModel):
     """
@@ -83,8 +83,10 @@ class Filter(BaseModel):
             return NCLFilter
         elif dataset_name == "litsearch":
             return LitSearchFilter
+        elif dataset_name == "ncl_llm_summary":
+            return NCL_LLM_SummaryFilter
         else:
-            raise ValueError(f"Unsupported dataset: {dataset_name}. Supported datasets are 'ncl' and 'litsearch'.")
+            raise ValueError(f"Unsupported dataset: {dataset_name}. Supported datasets are 'ncl', 'litsearch', and 'ncl_llm_summary'.")
         
 class NCLFilter(Filter.from_document_type(NCLDocument)):
     _doc_cls_ = NCLDocument  # triggers validate_fields during class creation
@@ -122,3 +124,21 @@ class LitSearchFilter(Filter.from_document_type(LitSearchDocument)):
         return ["authors"]
     
 LitSearchFilter.EMPTY = LitSearchFilter()
+
+class NCL_LLM_SummaryFilter(Filter.from_document_type(NCL_LLM_SummaryDocument)):
+    _doc_cls_ = NCL_LLM_SummaryDocument
+    EMPTY: ClassVar["NCL_LLM_SummaryFilter"]
+
+    def __init__(self, **data):
+        super().__init__(**data)
+        self.__class__.validate_fields(self._doc_cls_)
+
+    @classmethod
+    def filter_fields(cls) -> List[str]:
+        return ["year", "category", "school_chinese", "dept_chinese"]
+
+    @classmethod
+    def must_fields(cls) -> List[str]:
+        return ["keywords", "authors_chinese", "advisors_chinese"]
+    
+NCL_LLM_SummaryFilter.EMPTY = NCL_LLM_SummaryFilter()
