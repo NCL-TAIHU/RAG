@@ -36,6 +36,7 @@ class BaseVectorSet(StoredObj):
         dataloader = DataLoader.from_default(self._config.dataset)
         need_insert = [doc for doc in dataloader.stream() if not self.has(doc.key())]
         BATCH_SIZE = 64
+        logger.info(f"Existing vector set size: {self.size()}")
         logger.info(f"Need to insert {len(need_insert)} documents into vector set")
         for i in tqdm(range(0, len(need_insert), BATCH_SIZE), desc="Inserting documents"):
             batch = need_insert[i:i + BATCH_SIZE]
@@ -95,11 +96,18 @@ class BaseVectorSet(StoredObj):
     def _load_vectors(self):
         pass
 
+    @abstractmethod
+    def size(self) -> int:
+        pass
+
 class FileBackedDenseVS(BaseVectorSet):
     def __init__(self, config: VectorSetConfig):
         super().__init__(config)
         self.vector_path = os.path.join(self.root, "vectors.jsonl")
         self.vectors: Dict[str, List[List[float]]] = {}
+
+    def size(self) -> int:
+        return len(self.vectors)
 
     def has(self, id: str) -> bool:
         return id in self.vectors
@@ -130,6 +138,9 @@ class FileBackedSparseVS(BaseVectorSet):
         self.matrix_path = os.path.join(self.root, "vectors_matrix.npz")
         self.index_path = os.path.join(self.root, "index.jsonl")
         self.rows: Dict[str, csr_array] = {}
+
+    def size(self) -> int:
+        return len(self.rows)
 
     def has(self, id: str) -> bool:
         return id in self.rows
